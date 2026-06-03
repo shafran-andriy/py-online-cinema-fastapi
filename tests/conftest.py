@@ -6,6 +6,7 @@ os.environ['ENVIRONMENT'] = 'testing'
 
 import anyio
 from httpx import AsyncClient
+from httpx._transports.asgi import ASGITransport
 
 from config import get_settings
 from database.session_sqlite import reset_sqlite_database
@@ -36,21 +37,24 @@ def anyio_backend():
 
 
 @pytest.fixture(autouse=True)
-async def prepare_db():
-    # Reset DB schema
-    await reset_sqlite_database()
-    # Insert default user groups
-    async for db in get_db():
-        db.add(UserGroupModel(name='user'))
-        db.add(UserGroupModel(name='moderator'))
-        db.add(UserGroupModel(name='admin'))
-        await db.commit()
-        break
+def prepare_db():
+    # Reset DB schema and seed default user groups synchronously for pytest
+    asyncio.run(reset_sqlite_database())
+
+    async def _seed():
+        async for db in get_db():
+            db.add(UserGroupModel(name='user'))
+            db.add(UserGroupModel(name='moderator'))
+            db.add(UserGroupModel(name='admin'))
+            await db.commit()
+            break
+
+    asyncio.run(_seed())
 
 
 @pytest.fixture
 async def client():
-    async with AsyncClient(app=app, base_url='http://testserver') as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url='http://testserver') as ac:
         # override email sender dependency
         dummy = DummyEmailSender()
         app.dependency_overrides[get_settings] = lambda: get_settings()

@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,8 +20,11 @@ async def create_user_instance(email: str, raw_password: str, group_id: int) -> 
 
 
 async def create_activation_token_for_user(user: UserModel) -> ActivationTokenModel:
-    """Create an ActivationTokenModel instance for given user."""
-    return ActivationTokenModel(user_id=user.id if hasattr(user, 'id') else None)
+    """Create an ActivationTokenModel instance for given user. Populate token and expiry so it can be used without DB commit."""
+    user_id = getattr(user, 'id', None)
+    token_value = generate_secure_token(64)
+    expires_at = datetime.now(timezone.utc) + timedelta(days=1)
+    return ActivationTokenModel(user_id=user_id, token=token_value, expires_at=expires_at)
 
 
 def is_token_expired(token_model) -> bool:
