@@ -39,4 +39,47 @@ Update example (PATCH /api/v1/theater/movies/{id}/):
 
 These fields are documented in Swagger (FastAPI) and appear in the request schema for the endpoints.
 
-An online cinema is a digital platform that allows users to select, watch, and purchase access to movies and other video materials via the internet. These services have become popular due to their convenience, a wide selection of content, and the ability to personalize the user experience.
+---
+
+Infrastructure and deployment
+
+1) Local development using virtual environment
+
+- Create and activate venv:
+
+  python -m venv venv
+  venv\Scripts\activate
+
+- Install dependencies:
+
+  pip install -r requirements.txt
+
+2) Running Postgres + Redis with Docker Compose
+
+- Start services:
+
+  docker-compose up -d
+
+- Default credentials (in docker-compose.yml):
+  - POSTGRES_USER=postgres
+  - POSTGRES_PASSWORD=postgres
+  - POSTGRES_DB=online_cinema
+
+3) Migrations (Alembic)
+
+- Alembic is configured to read DATABASE_URL environment variable (used by alembic/env.py). Example:
+
+  export DATABASE_URL=postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/online_cinema
+
+- Generate initial migration (after setting DATABASE_URL and installing dependencies):
+
+  alembic revision --autogenerate -m "init"
+  alembic upgrade head
+
+4) CI
+
+- A GitHub Actions workflow is provided at .github/workflows/ci.yml to run tests on push/PR. It starts Postgres and Redis services and runs pytest.
+
+---
+
+If you want, the next step is to run alembic revision --autogenerate locally (requires DATABASE_URL). I can proceed to generate an initial migration file for you here if you provide a live Postgres URL, or proceed to create a starter migration template instead.
