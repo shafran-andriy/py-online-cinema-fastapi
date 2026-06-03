@@ -2,7 +2,7 @@ from typing import List
 from fastapi import APIRouter, Depends, status, HTTPException, Query
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, attributes
 
 from database import (
     get_db,
@@ -109,7 +109,7 @@ async def create_movie(
         directors = res.scalars().all()
         if len(directors) != len(set(payload.director_ids)):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="One or more director_ids invalid")
-        movie.directors = directors
+        attributes.set_committed_value(movie, 'directors', directors)
 
     if getattr(payload, 'star_ids', None):
         stmt = select(StarModel).where(StarModel.id.in_(payload.star_ids))
@@ -117,7 +117,7 @@ async def create_movie(
         stars = res.scalars().all()
         if len(stars) != len(set(payload.star_ids)):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="One or more star_ids invalid")
-        movie.stars = stars
+        attributes.set_committed_value(movie, 'stars', stars)
 
     # attach or create by names if provided
     # genre names
@@ -136,7 +136,7 @@ async def create_movie(
             genres_list.extend(existing + new_objs)
 
     if genres_list:
-        movie.genres = genres_list
+        attributes.set_committed_value(movie, 'genres', genres_list)
 
     # director names
     if getattr(payload, 'director_names', None):
@@ -152,7 +152,7 @@ async def create_movie(
                 db.add_all(new_objs)
                 await db.flush()
             directors_combined = getattr(movie, 'directors', []) + existing + new_objs
-            movie.directors = directors_combined
+            attributes.set_committed_value(movie, 'directors', directors_combined)
 
     # star names
     if getattr(payload, 'star_names', None):
@@ -168,7 +168,7 @@ async def create_movie(
                 db.add_all(new_objs)
                 await db.flush()
             stars_combined = getattr(movie, 'stars', []) + existing + new_objs
-            movie.stars = stars_combined
+            attributes.set_committed_value(movie, 'stars', stars_combined)
 
     db.add(movie)
     await db.commit()
@@ -216,7 +216,7 @@ async def update_movie(
                     db.add_all(new_objs)
                     await db.flush()
                 genres_list.extend(existing + new_objs)
-        movie.genres = genres_list
+        attributes.set_committed_value(movie, 'genres', genres_list)
 
     # directors
     if getattr(payload, 'director_ids', None) is not None or getattr(payload, 'director_names', None) is not None:
@@ -241,7 +241,7 @@ async def update_movie(
                     db.add_all(new_objs)
                     await db.flush()
                 directors_list.extend(existing + new_objs)
-        movie.directors = directors_list
+        attributes.set_committed_value(movie, 'directors', directors_list)
 
     # stars
     if getattr(payload, 'star_ids', None) is not None or getattr(payload, 'star_names', None) is not None:
@@ -266,7 +266,7 @@ async def update_movie(
                     db.add_all(new_objs)
                     await db.flush()
                 stars_list.extend(existing + new_objs)
-        movie.stars = stars_list
+        attributes.set_committed_value(movie, 'stars', stars_list)
 
     db.add(movie)
     await db.commit()
