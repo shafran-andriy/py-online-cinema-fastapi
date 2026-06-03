@@ -140,11 +140,7 @@ async def create_movie(
                 await db.flush()
             genres_list.extend(existing + new_objs)
 
-    if genres_list:
-        for g in genres_list:
-            await db.execute(movie_genres.insert().values(movie_id=movie.id, genre_id=g.id))
-
-    # director names
+    # process director names: find or create and merge with directors_list
     if getattr(payload, 'director_names', None):
         names = [n.strip() for n in payload.director_names if n and n.strip()]
         if names:
@@ -157,16 +153,14 @@ async def create_movie(
             if new_objs:
                 db.add_all(new_objs)
                 await db.flush()
-            directors_combined = directors_list + existing + new_objs
-            # deduplicate by name
+            combined = directors_list + existing + new_objs
             seen = set(); dedup = []
-            for d in directors_combined:
+            for d in combined:
                 if d.name not in seen:
                     dedup.append(d); seen.add(d.name)
-            for d in dedup:
-                await db.execute(movie_directors.insert().values(movie_id=movie.id, director_id=d.id))
+            directors_list = dedup
 
-    # star names
+    # process star names: find or create and merge with stars_list
     if getattr(payload, 'star_names', None):
         names = [n.strip() for n in payload.star_names if n and n.strip()]
         if names:
@@ -179,13 +173,30 @@ async def create_movie(
             if new_objs:
                 db.add_all(new_objs)
                 await db.flush()
-            stars_combined = stars_list + existing + new_objs
+            combined = stars_list + existing + new_objs
             seen = set(); dedup = []
-            for s in stars_combined:
+            for s in combined:
                 if s.name not in seen:
                     dedup.append(s); seen.add(s.name)
-            for s in dedup:
-                await db.execute(movie_stars.insert().values(movie_id=movie.id, star_id=s.id))
+            stars_list = dedup
+
+    # persist all associations (genres, directors, stars) once, deduplicated by id
+    def _uniq_by_id(objs):
+        seen = set(); uniques = []
+        for o in objs:
+            if o.id not in seen:
+                seen.add(o.id); uniques.append(o)
+        return uniques
+
+    if genres_list:
+        for g in _uniq_by_id(genres_list):
+            await db.execute(movie_genres.insert().values(movie_id=movie.id, genre_id=g.id))
+    if directors_list:
+        for d in _uniq_by_id(directors_list):
+            await db.execute(movie_directors.insert().values(movie_id=movie.id, director_id=d.id))
+    if stars_list:
+        for s in _uniq_by_id(stars_list):
+            await db.execute(movie_stars.insert().values(movie_id=movie.id, star_id=s.id))
 
     db.add(movie)
     await db.commit()
@@ -284,6 +295,36 @@ async def update_movie(
                     await db.flush()
                 stars_list.extend(existing + new_objs)
         attributes.set_committed_value(movie, 'stars', stars_list)
+
+    # synchronize association tables for any relationships that were updated
+    # genres
+    if getattr(payload, 'genre_ids', None) is not None or getattr(payload, 'genre_names', None) is not None:
+        await db.execute(movie_genres.delete().where(movie_genres.c.movie_id == movie.id))
+        # insert new
+        if 'genres_list' in locals() and genres_list:
+            seen = set()
+            for g in genres_list:
+                if g.id not in seen:
+                    seen.add(g.id)
+                    await db.execute(movie_genres.insert().values(movie_id=movie.id, genre_id=g.id))
+    # directors
+    if getattr(payload, 'director_ids', None) is not None or getattr(payload, 'director_names', None) is not None:
+        await db.execute(movie_directors.delete().where(movie_directors.c.movie_id == movie.id))
+        if 'directors_list' in locals() and directors_list:
+            seen = set()
+            for d in directors_list:
+                if d.id not in seen:
+                    seen.add(d.id)
+                    await db.execute(movie_directors.insert().values(movie_id=movie.id, director_id=d.id))
+    # stars
+    if getattr(payload, 'star_ids', None) is not None or getattr(payload, 'star_names', None) is not None:
+        await db.execute(movie_stars.delete().where(movie_stars.c.movie_id == movie.id))
+        if 'stars_list' in locals() and stars_list:
+            seen = set()
+            for s in stars_list:
+                if s.id not in seen:
+                    seen.add(s.id)
+                    await db.execute(movie_stars.insert().values(movie_id=movie.id, star_id=s.id))
 
     db.add(movie)
     await db.commit()
