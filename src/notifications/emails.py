@@ -6,7 +6,7 @@ import aiosmtplib
 from jinja2 import Environment, FileSystemLoader
 
 from exceptions import BaseEmailError
-from notifications.interfaces import EmailSenderInterface
+from .interfaces import EmailSenderInterface
 
 
 class EmailSender(EmailSenderInterface):
