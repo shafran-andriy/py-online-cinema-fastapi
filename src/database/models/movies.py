@@ -88,8 +88,8 @@ class MovieModel(Base):
     time: Mapped[int] = mapped_column(Integer, nullable=False)  # duration in minutes
     imdb: Mapped[float] = mapped_column(Float, nullable=False)
     votes: Mapped[int] = mapped_column(Integer, nullable=False)
-    meta_score: Mapped[float] = mapped_column(Float)
-    gross: Mapped[float] = mapped_column(Float)
+    meta_score: Mapped[float] = mapped_column(Float, nullable=True)
+    gross: Mapped[float] = mapped_column(Float, nullable=True)
     description: Mapped[str] = mapped_column(String(2000), nullable=False)
     price: Mapped[float] = mapped_column(DECIMAL(10, 2))
 
