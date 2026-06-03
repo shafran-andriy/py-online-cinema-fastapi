@@ -18,6 +18,7 @@ from schemas.movies import MovieSummarySchema, GenreSchema, MovieListResponseSch
 from security.deps import require_moderator, get_current_user, get_optional_current_user
 from pydantic import BaseModel
 from services import movies_service
+from fastapi import Body
 
 router = APIRouter()
 
@@ -164,7 +165,24 @@ async def list_movies(
 
 @router.post("/movies/", status_code=status.HTTP_201_CREATED)
 async def create_movie(
-    payload: MovieCreateSchema,
+    payload: MovieCreateSchema = Body(..., examples={
+        "default": {
+            "summary": "Create example",
+            "value": {
+                "name": "New Movie",
+                "year": 2023,
+                "time": 120,
+                "imdb": 7.5,
+                "votes": 1000,
+                "description": "A new film",
+                "price": 4.99,
+                "certification_id": 1,
+                "genre_names": ["Action", "Thriller"],
+                "director_names": ["Famous Director"],
+                "star_names": ["Star A", "Star B"]
+            }
+        }
+    }),
     db: AsyncSession = Depends(get_db),
     _moderator=Depends(require_moderator),
 ):
@@ -189,7 +207,12 @@ async def create_movie(
 @router.patch("/movies/{movie_id}/", status_code=status.HTTP_200_OK)
 async def update_movie(
     movie_id: int,
-    payload: MovieUpdateSchema,
+    payload: MovieUpdateSchema = Body(..., examples={
+        "default": {
+            "summary": "Partial update example",
+            "value": {"genre_names": ["AddedG"], "director_names": ["AddedDir"]}
+        }
+    }),
     db: AsyncSession = Depends(get_db),
     _moderator=Depends(require_moderator),
 ):
