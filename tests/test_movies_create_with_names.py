@@ -12,10 +12,12 @@ async def test_create_movie_with_names(client):
     app.dependency_overrides[require_moderator] = lambda: None
 
     async for db in get_db():
-        # do not pre-create genres/directors/stars; provide names only
-        async def _commit_dummy():
-            await db.commit()
-        await _commit_dummy()
+        # create a certification for this test
+        from database import CertificationModel
+        cert = CertificationModel(name='CN')
+        db.add(cert)
+        await db.flush()
+        await db.commit()
         movie_payload = {
             'name': 'Name Movie',
             'year': 2023,
@@ -24,7 +26,7 @@ async def test_create_movie_with_names(client):
             'votes': 300,
             'description': 'Created by names',
             'price': 9.99,
-            'certification_id': 1,  # may exist from test fixtures
+            'certification_id': cert.id,
             'genre_names': ['NewGenreA', 'NewGenreB'],
             'director_names': ['NewDirector'],
             'star_names': ['NewStar'],
