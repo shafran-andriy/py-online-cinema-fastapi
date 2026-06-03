@@ -29,5 +29,11 @@ async def test_list_movies(client):
     resp = await client.get('/api/v1/theater/movies/')
     assert resp.status_code == 200
     data = resp.json()
-    assert isinstance(data, list)
-    assert any(m['name'] == 'Test Movie' for m in data)
+    # new response contains total and items
+    if isinstance(data, dict):
+        items = data.get('items', [])
+        total = data.get('total')
+        assert total is not None and total >= 1
+    else:
+        items = data
+    assert any(m['name'] == 'Test Movie' for m in items)

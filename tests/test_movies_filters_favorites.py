@@ -26,7 +26,8 @@ async def test_search_and_favorites(client):
     resp = await client.get('/api/v1/theater/movies/?q=Find')
     assert resp.status_code == 200
     data = resp.json()
-    assert any(item['name'] == 'FindMe' for item in data)
+    items = data.get('items') if isinstance(data, dict) else data
+    assert any(item['name'] == 'FindMe' for item in items)
 
     # favorite movie (need a user) - reuse test user register/activate
     payload = {"email": "favuser@example.com", "password": "StrongPass1!"}

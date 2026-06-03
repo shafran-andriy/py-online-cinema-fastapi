@@ -7,6 +7,28 @@ from security.interfaces import JWTAuthManagerInterface
 from database import get_db, UserModel
 
 security = HTTPBearer()
+security_optional = HTTPBearer(auto_error=False)
+
+
+async def get_optional_current_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(security_optional),
+    jwt_manager: JWTAuthManagerInterface = Depends(get_jwt_auth_manager),
+    db: AsyncSession = Depends(get_db),
+):
+    # if no credentials provided, return None
+    if credentials is None:
+        return None
+    token = credentials.credentials
+    try:
+        payload = jwt_manager.decode_access_token(token)
+    except Exception:
+        return None
+    user_id = payload.get("user_id")
+    if user_id is None:
+        return None
+    # fetch user via ORM
+    user = await db.get(UserModel, user_id)
+    return user
 
 
 async def get_current_user(

@@ -32,3 +32,10 @@ class MovieDetailSchema(MovieSummarySchema):
     stars: List[GenreSchema] = []
 
     model_config = {"from_attributes": True}
+
+
+class MovieListResponseSchema(BaseModel):
+    total: int
+    items: List[MovieSummarySchema]
+
+    model_config = {"from_attributes": True}
