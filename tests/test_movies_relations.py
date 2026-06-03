@@ -2,6 +2,8 @@ import pytest
 from uuid import uuid4
 
 from database import get_db, MovieModel, CertificationModel, GenreModel, DirectorModel, StarModel
+from sqlalchemy import select
+from sqlalchemy.orm import joinedload
 
 
 @pytest.mark.anyio
@@ -45,7 +47,13 @@ async def test_movie_relations_create(client):
 
     # verify relations in DB
     async for db in get_db():
-        movie = await db.get(MovieModel, movie_id)
+        stmt = select(MovieModel).options(
+            joinedload(MovieModel.genres),
+            joinedload(MovieModel.directors),
+            joinedload(MovieModel.stars),
+        ).where(MovieModel.id == movie_id)
+        res = await db.execute(stmt)
+        movie = res.scalars().first()
         assert movie is not None
         assert len(movie.genres) == 2
         assert len(movie.directors) == 1
