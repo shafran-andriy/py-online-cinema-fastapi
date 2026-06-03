@@ -178,9 +178,9 @@ async def test_list_users_forbidden_for_regular_user(client: AsyncClient):
 @pytest.mark.anyio
 async def test_list_users_success_for_admin(client: AsyncClient):
     email = "admin_list@example.com"
+    # get access token THEN elevate — get_current_user reloads group from DB each request
     token = await _setup_active_user(client, email)
     await _make_admin(email)
-    token = await _login(client, email)
 
     resp = await client.get("/api/v1/accounts/users/", headers={"Authorization": f"Bearer {token}"})
     assert resp.status_code == 200
@@ -227,7 +227,7 @@ async def test_change_group_success(client: AsyncClient):
     await _activate(client, target_email)
     admin_token = await _setup_active_user(client, admin_email)
     await _make_admin(admin_email)
-    admin_token = await _login(client, admin_email)
+    # access token still valid — get_current_user reloads group from DB
 
     # get target user id
     async for db in get_db():
@@ -275,7 +275,7 @@ async def test_manual_activate_success(client: AsyncClient):
     await _register(client, target_email)
     admin_token = await _setup_active_user(client, admin_email)
     await _make_admin(admin_email)
-    admin_token = await _login(client, admin_email)
+    # access token is still valid after group change in DB
 
     async for db in get_db():
         res = await db.execute(select(UserModel).where(UserModel.email == target_email))
@@ -305,7 +305,7 @@ async def test_manual_activate_already_active(client: AsyncClient):
     await _setup_active_user(client, target_email)
     admin_token = await _setup_active_user(client, admin_email)
     await _make_admin(admin_email)
-    admin_token = await _login(client, admin_email)
+    # access token still valid — group change is visible on next request
 
     async for db in get_db():
         res = await db.execute(select(UserModel).where(UserModel.email == target_email))

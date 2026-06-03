@@ -3,7 +3,7 @@ from typing import List, cast
 
 from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy import select, delete
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
@@ -326,7 +326,12 @@ async def login_user(
 
     rt = RefreshTokenModel.create(user_id=user.id, days_valid=settings.LOGIN_TIME_DAYS, token=refresh_token)
     db.add(rt)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        # Identical token already in DB (two logins within the same second produce the
+        # same JWT). The existing token is still valid — just return it.
+        await db.rollback()
 
     return UserLoginResponseSchema(access_token=access_token, refresh_token=refresh_token)
 
