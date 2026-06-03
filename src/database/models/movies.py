@@ -29,6 +29,14 @@ movie_stars = Table(
     Column("star_id", ForeignKey("stars.id"), primary_key=True),
 )
 
+# User favorites association (user can favorite many movies)
+movie_favorites = Table(
+    "movie_favorites",
+    Base.metadata,
+    Column("movie_id", ForeignKey("movies.id"), primary_key=True),
+    Column("user_id", ForeignKey("users.id"), primary_key=True),
+)
+
 
 class GenreModel(Base):
     __tablename__ = "genres"
