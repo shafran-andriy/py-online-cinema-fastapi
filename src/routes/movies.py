@@ -139,7 +139,7 @@ async def update_movie(
         movie.genres = genres
 
     if payload.director_ids is not None:
-        stmt = select(GenreModel).where(GenreModel.id.in_(payload.director_ids))
+        stmt = select(DirectorModel).where(DirectorModel.id.in_(payload.director_ids))
         res = await db.execute(stmt)
         directors = res.scalars().all()
         if len(directors) != len(set(payload.director_ids)):
@@ -147,7 +147,7 @@ async def update_movie(
         movie.directors = directors
 
     if payload.star_ids is not None:
-        stmt = select(GenreModel).where(GenreModel.id.in_(payload.star_ids))
+        stmt = select(StarModel).where(StarModel.id.in_(payload.star_ids))
         res = await db.execute(stmt)
         stars = res.scalars().all()
         if len(stars) != len(set(payload.star_ids)):
