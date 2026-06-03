@@ -14,10 +14,18 @@ fileConfig(config.config_file_name)
 # add your model's MetaData object here
 # for 'autogenerate' support
 import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from src.database import Base as _Base  # noqa
+# ensure project root is on path
+# ensure src/ is on the import path so package imports succeed
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
+from database import Base as _Base  # noqa
 
 target_metadata = _Base.metadata
+
+# allow overriding the DB URL from environment (useful for Postgres):
+# export DATABASE_URL="postgresql+asyncpg://user:pass@host:5432/dbname"
+database_url = os.getenv('DATABASE_URL')
+if database_url:
+    config.set_main_option('sqlalchemy.url', database_url)
 
 
 def run_migrations_offline():
