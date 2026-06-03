@@ -26,6 +26,9 @@ from database.models.movies import (
     MovieRatingModel,
 )
 
+# cart models
+from database.models.cart import CartModel, CartItemModel
+
 __all__ = [
     "Base",
     "UserModel",
@@ -49,4 +52,6 @@ __all__ = [
     "MovieLikeModel",
     "MovieCommentModel",
     "MovieRatingModel",
+    "CartModel",
+    "CartItemModel",
 ]
