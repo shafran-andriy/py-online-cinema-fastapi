@@ -10,11 +10,6 @@ from .accounts import (
     TokenRefreshRequestSchema,
     TokenRefreshResponseSchema,
 )
-from .movies import (
-    GenreSchema,
-    MovieSummarySchema,
-    MovieDetailSchema,
-)
 
 __all__ = [
     "UserRegistrationRequestSchema",
@@ -27,7 +22,4 @@ __all__ = [
     "UserLoginRequestSchema",
     "TokenRefreshRequestSchema",
     "TokenRefreshResponseSchema",
-    "GenreSchema",
-    "MovieSummarySchema",
-    "MovieDetailSchema",
 ]
