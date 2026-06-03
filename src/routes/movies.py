@@ -24,7 +24,7 @@ async def list_movies(
     offset = (page - 1) * size
     stmt = select(MovieModel).options(joinedload(MovieModel.genres)).offset(offset).limit(size)
     result = await db.execute(stmt)
-    movies = result.scalars().all()
+    movies = result.unique().scalars().all()
     return [MovieSummarySchema.model_validate(m) for m in movies]
 
 
