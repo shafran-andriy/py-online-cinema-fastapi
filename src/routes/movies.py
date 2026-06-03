@@ -92,6 +92,8 @@ async def create_movie(
 
     # add movie to session early to avoid SAWarning when associating new related objects
     db.add(movie)
+    # flush so movie has a PK and relationship assignments won't trigger lazy loads
+    await db.flush()
 
     # attach relationships if provided (ids)
     genres_list: list = []
