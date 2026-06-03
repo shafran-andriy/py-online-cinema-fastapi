@@ -6,9 +6,11 @@ from database import get_db, MovieModel, CertificationModel
 
 @pytest.mark.anyio
 async def test_movies_crud(client, monkeypatch):
-    # Override moderator requirement to bypass auth in test
-    from security import deps as sd
-    monkeypatch.setattr(sd, 'require_moderator', lambda: None)
+    # Override moderator requirement to bypass auth in test using FastAPI dependency override
+    from main import app
+    from security.deps import require_moderator
+    app.dependency_overrides[require_moderator] = lambda: None
+    monkeypatch.setattr(app, 'dependency_overrides', app.dependency_overrides)  # ensure cleanup
 
     async for db in get_db():
         cert = CertificationModel(name='R')
