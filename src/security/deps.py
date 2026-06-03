@@ -22,12 +22,7 @@ async def get_current_user(
     user_id = payload.get("user_id")
     if user_id is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
-    stmt = await db.execute(
-        "SELECT * FROM users WHERE id = :id",
-        {"id": user_id}
-    )
-    # Use ORM query to fetch
-    result = await db.execute("SELECT id FROM users WHERE id=:id", {"id": user_id})
+    # fetch user via ORM
     user = await db.get(UserModel, user_id)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
