@@ -9,6 +9,8 @@ from database import (
     MovieModel,
     GenreModel,
     CertificationModel,
+    DirectorModel,
+    StarModel,
 )
 from schemas.movies import MovieSummarySchema, GenreSchema
 from security.deps import require_moderator
@@ -26,10 +28,23 @@ class MovieCreateSchema(BaseModel):
     description: str
     price: float
     certification_id: int
+    genre_ids: list[int] | None = None
+    director_ids: list[int] | None = None
+    star_ids: list[int] | None = None
 
 
-class MovieUpdateSchema(MovieCreateSchema):
-    pass
+class MovieUpdateSchema(BaseModel):
+    name: str | None = None
+    year: int | None = None
+    time: int | None = None
+    imdb: float | None = None
+    votes: int | None = None
+    description: str | None = None
+    price: float | None = None
+    certification_id: int | None = None
+    genre_ids: list[int] | None = None
+    director_ids: list[int] | None = None
+    star_ids: list[int] | None = None
 
 
 @router.get("/movies/", response_model=List[MovieSummarySchema], status_code=status.HTTP_200_OK)
@@ -51,6 +66,11 @@ async def create_movie(
     db: AsyncSession = Depends(get_db),
     _moderator=Depends(require_moderator),
 ):
+    # validate certification exists
+    cert = await db.get(CertificationModel, payload.certification_id)
+    if not cert:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid certification_id")
+
     movie = MovieModel(
         name=payload.name,
         year=payload.year,
@@ -61,6 +81,32 @@ async def create_movie(
         price=payload.price,
         certification_id=payload.certification_id,
     )
+
+    # attach relationships if provided
+    if payload.genre_ids:
+        stmt = select(GenreModel).where(GenreModel.id.in_(payload.genre_ids))
+        res = await db.execute(stmt)
+        genres = res.scalars().all()
+        if len(genres) != len(set(payload.genre_ids)):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="One or more genre_ids invalid")
+        movie.genres = genres
+
+    if payload.director_ids:
+        stmt = select(DirectorModel).where(DirectorModel.id.in_(payload.director_ids))
+        res = await db.execute(stmt)
+        directors = res.scalars().all()
+        if len(directors) != len(set(payload.director_ids)):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="One or more director_ids invalid")
+        movie.directors = directors
+
+    if payload.star_ids:
+        stmt = select(StarModel).where(StarModel.id.in_(payload.star_ids))
+        res = await db.execute(stmt)
+        stars = res.scalars().all()
+        if len(stars) != len(set(payload.star_ids)):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="One or more star_ids invalid")
+        movie.stars = stars
+
     db.add(movie)
     await db.commit()
     await db.refresh(movie)
@@ -77,8 +123,37 @@ async def update_movie(
     movie = await db.get(MovieModel, movie_id)
     if not movie:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Movie not found")
-    for k, v in payload.model_dump().items():
-        setattr(movie, k, v)
+    # simple field updates
+    for field in ("name", "year", "time", "imdb", "votes", "description", "price", "certification_id"):
+        val = getattr(payload, field)
+        if val is not None:
+            setattr(movie, field, val)
+
+    # update relationships
+    if payload.genre_ids is not None:
+        stmt = select(GenreModel).where(GenreModel.id.in_(payload.genre_ids))
+        res = await db.execute(stmt)
+        genres = res.scalars().all()
+        if len(genres) != len(set(payload.genre_ids)):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="One or more genre_ids invalid")
+        movie.genres = genres
+
+    if payload.director_ids is not None:
+        stmt = select(GenreModel).where(GenreModel.id.in_(payload.director_ids))
+        res = await db.execute(stmt)
+        directors = res.scalars().all()
+        if len(directors) != len(set(payload.director_ids)):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="One or more director_ids invalid")
+        movie.directors = directors
+
+    if payload.star_ids is not None:
+        stmt = select(GenreModel).where(GenreModel.id.in_(payload.star_ids))
+        res = await db.execute(stmt)
+        stars = res.scalars().all()
+        if len(stars) != len(set(payload.star_ids)):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="One or more star_ids invalid")
+        movie.stars = stars
+
     db.add(movie)
     await db.commit()
     await db.refresh(movie)
