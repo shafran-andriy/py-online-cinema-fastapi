@@ -31,6 +31,10 @@ class MovieCreateSchema(BaseModel):
     genre_ids: list[int] | None = None
     director_ids: list[int] | None = None
     star_ids: list[int] | None = None
+    # allow creating/attaching by names inline
+    genre_names: list[str] | None = None
+    director_names: list[str] | None = None
+    star_names: list[str] | None = None
 
 
 class MovieUpdateSchema(BaseModel):
@@ -45,6 +49,10 @@ class MovieUpdateSchema(BaseModel):
     genre_ids: list[int] | None = None
     director_ids: list[int] | None = None
     star_ids: list[int] | None = None
+    # allow names on update as well
+    genre_names: list[str] | None = None
+    director_names: list[str] | None = None
+    star_names: list[str] | None = None
 
 
 @router.get("/movies/", response_model=List[MovieSummarySchema], status_code=status.HTTP_200_OK)
@@ -82,16 +90,17 @@ async def create_movie(
         certification_id=payload.certification_id,
     )
 
-    # attach relationships if provided
-    if payload.genre_ids:
+    # attach relationships if provided (ids)
+    genres_list: list = []
+    if getattr(payload, 'genre_ids', None):
         stmt = select(GenreModel).where(GenreModel.id.in_(payload.genre_ids))
         res = await db.execute(stmt)
         genres = res.scalars().all()
         if len(genres) != len(set(payload.genre_ids)):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="One or more genre_ids invalid")
-        movie.genres = genres
+        genres_list.extend(genres)
 
-    if payload.director_ids:
+    if getattr(payload, 'director_ids', None):
         stmt = select(DirectorModel).where(DirectorModel.id.in_(payload.director_ids))
         res = await db.execute(stmt)
         directors = res.scalars().all()
@@ -99,13 +108,64 @@ async def create_movie(
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="One or more director_ids invalid")
         movie.directors = directors
 
-    if payload.star_ids:
+    if getattr(payload, 'star_ids', None):
         stmt = select(StarModel).where(StarModel.id.in_(payload.star_ids))
         res = await db.execute(stmt)
         stars = res.scalars().all()
         if len(stars) != len(set(payload.star_ids)):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="One or more star_ids invalid")
         movie.stars = stars
+
+    # attach or create by names if provided
+    # genre names
+    if getattr(payload, 'genre_names', None):
+        names = [n.strip() for n in payload.genre_names if n and n.strip()]
+        if names:
+            stmt = select(GenreModel).where(GenreModel.name.in_(names))
+            res = await db.execute(stmt)
+            existing = res.scalars().all()
+            existing_names = {g.name for g in existing}
+            missing_names = [n for n in names if n not in existing_names]
+            new_objs = [GenreModel(name=n) for n in missing_names]
+            if new_objs:
+                db.add_all(new_objs)
+                await db.flush()
+            genres_list.extend(existing + new_objs)
+
+    if genres_list:
+        movie.genres = genres_list
+
+    # director names
+    if getattr(payload, 'director_names', None):
+        names = [n.strip() for n in payload.director_names if n and n.strip()]
+        if names:
+            stmt = select(DirectorModel).where(DirectorModel.name.in_(names))
+            res = await db.execute(stmt)
+            existing = res.scalars().all()
+            existing_names = {d.name for d in existing}
+            missing_names = [n for n in names if n not in existing_names]
+            new_objs = [DirectorModel(name=n) for n in missing_names]
+            if new_objs:
+                db.add_all(new_objs)
+                await db.flush()
+            directors_combined = getattr(movie, 'directors', []) + existing + new_objs
+            movie.directors = directors_combined
+
+    # star names
+    if getattr(payload, 'star_names', None):
+        names = [n.strip() for n in payload.star_names if n and n.strip()]
+        if names:
+            stmt = select(StarModel).where(StarModel.name.in_(names))
+            res = await db.execute(stmt)
+            existing = res.scalars().all()
+            existing_names = {s.name for s in existing}
+            missing_names = [n for n in names if n not in existing_names]
+            new_objs = [StarModel(name=n) for n in missing_names]
+            if new_objs:
+                db.add_all(new_objs)
+                await db.flush()
+            stars_combined = getattr(movie, 'stars', []) + existing + new_objs
+            movie.stars = stars_combined
 
     db.add(movie)
     await db.commit()
@@ -129,30 +189,81 @@ async def update_movie(
         if val is not None:
             setattr(movie, field, val)
 
-    # update relationships
-    if payload.genre_ids is not None:
-        stmt = select(GenreModel).where(GenreModel.id.in_(payload.genre_ids))
-        res = await db.execute(stmt)
-        genres = res.scalars().all()
-        if len(genres) != len(set(payload.genre_ids)):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="One or more genre_ids invalid")
-        movie.genres = genres
+    # prepare new relationship lists
+    # genres
+    if getattr(payload, 'genre_ids', None) is not None or getattr(payload, 'genre_names', None) is not None:
+        genres_list = []
+        if getattr(payload, 'genre_ids', None):
+            stmt = select(GenreModel).where(GenreModel.id.in_(payload.genre_ids))
+            res = await db.execute(stmt)
+            genres = res.scalars().all()
+            if len(genres) != len(set(payload.genre_ids)):
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="One or more genre_ids invalid")
+            genres_list.extend(genres)
+        if getattr(payload, 'genre_names', None):
+            names = [n.strip() for n in payload.genre_names if n and n.strip()]
+            if names:
+                stmt = select(GenreModel).where(GenreModel.name.in_(names))
+                res = await db.execute(stmt)
+                existing = res.scalars().all()
+                existing_names = {g.name for g in existing}
+                missing_names = [n for n in names if n not in existing_names]
+                new_objs = [GenreModel(name=n) for n in missing_names]
+                if new_objs:
+                    db.add_all(new_objs)
+                    await db.flush()
+                genres_list.extend(existing + new_objs)
+        movie.genres = genres_list
 
-    if payload.director_ids is not None:
-        stmt = select(DirectorModel).where(DirectorModel.id.in_(payload.director_ids))
-        res = await db.execute(stmt)
-        directors = res.scalars().all()
-        if len(directors) != len(set(payload.director_ids)):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="One or more director_ids invalid")
-        movie.directors = directors
+    # directors
+    if getattr(payload, 'director_ids', None) is not None or getattr(payload, 'director_names', None) is not None:
+        directors_list = []
+        if getattr(payload, 'director_ids', None):
+            stmt = select(DirectorModel).where(DirectorModel.id.in_(payload.director_ids))
+            res = await db.execute(stmt)
+            directors = res.scalars().all()
+            if len(directors) != len(set(payload.director_ids)):
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="One or more director_ids invalid")
+            directors_list.extend(directors)
+        if getattr(payload, 'director_names', None):
+            names = [n.strip() for n in payload.director_names if n and n.strip()]
+            if names:
+                stmt = select(DirectorModel).where(DirectorModel.name.in_(names))
+                res = await db.execute(stmt)
+                existing = res.scalars().all()
+                existing_names = {d.name for d in existing}
+                missing_names = [n for n in names if n not in existing_names]
+                new_objs = [DirectorModel(name=n) for n in missing_names]
+                if new_objs:
+                    db.add_all(new_objs)
+                    await db.flush()
+                directors_list.extend(existing + new_objs)
+        movie.directors = directors_list
 
-    if payload.star_ids is not None:
-        stmt = select(StarModel).where(StarModel.id.in_(payload.star_ids))
-        res = await db.execute(stmt)
-        stars = res.scalars().all()
-        if len(stars) != len(set(payload.star_ids)):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="One or more star_ids invalid")
-        movie.stars = stars
+    # stars
+    if getattr(payload, 'star_ids', None) is not None or getattr(payload, 'star_names', None) is not None:
+        stars_list = []
+        if getattr(payload, 'star_ids', None):
+            stmt = select(StarModel).where(StarModel.id.in_(payload.star_ids))
+            res = await db.execute(stmt)
+            stars = res.scalars().all()
+            if len(stars) != len(set(payload.star_ids)):
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="One or more star_ids invalid")
+            stars_list.extend(stars)
+        if getattr(payload, 'star_names', None):
+            names = [n.strip() for n in payload.star_names if n and n.strip()]
+            if names:
+                stmt = select(StarModel).where(StarModel.name.in_(names))
+                res = await db.execute(stmt)
+                existing = res.scalars().all()
+                existing_names = {s.name for s in existing}
+                missing_names = [n for n in names if n not in existing_names]
+                new_objs = [StarModel(name=n) for n in missing_names]
+                if new_objs:
+                    db.add_all(new_objs)
+                    await db.flush()
+                stars_list.extend(existing + new_objs)
+        movie.stars = stars_list
 
     db.add(movie)
     await db.commit()
