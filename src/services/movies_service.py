@@ -114,3 +114,100 @@ async def sync_associations(db: AsyncSession, movie_id: int, movie_genres_table,
             if s.id not in seen:
                 seen.add(s.id)
                 await db.execute(movie_stars_table.insert().values(movie_id=movie_id, star_id=s.id))
+
+
+async def create_movie(db: AsyncSession, payload, *, MovieModel, GenreModel, DirectorModel, StarModel, CertificationModel, movie_genres, movie_directors, movie_stars):
+    """Create movie with related genres/directors/stars. Raises ValueError on validation errors."""
+    # validate certification
+    cert = await db.get(CertificationModel, payload.certification_id)
+    if not cert:
+        raise ValueError("Invalid certification_id")
+
+    movie = MovieModel(
+        name=payload.name,
+        year=payload.year,
+        time=payload.time,
+        imdb=payload.imdb,
+        votes=payload.votes,
+        description=payload.description,
+        price=payload.price,
+        certification_id=payload.certification_id,
+    )
+    db.add(movie)
+    await db.flush()
+
+    related = await prepare_related(
+        db,
+        GenreModel=GenreModel,
+        DirectorModel=DirectorModel,
+        StarModel=StarModel,
+        genre_ids=getattr(payload, 'genre_ids', None),
+        director_ids=getattr(payload, 'director_ids', None),
+        star_ids=getattr(payload, 'star_ids', None),
+        genre_names=getattr(payload, 'genre_names', None),
+        director_names=getattr(payload, 'director_names', None),
+        star_names=getattr(payload, 'star_names', None),
+    )
+
+    await sync_associations(
+        db,
+        movie.id,
+        movie_genres,
+        movie_directors,
+        movie_stars,
+        genres=related.get('genres'),
+        directors=related.get('directors'),
+        stars=related.get('stars'),
+    )
+
+    db.add(movie)
+    await db.commit()
+    await db.refresh(movie)
+    return movie
+
+
+async def update_movie(db: AsyncSession, movie_id: int, payload, *, MovieModel, GenreModel, DirectorModel, StarModel, movie_genres, movie_directors, movie_stars):
+    """Update movie fields and associations. Raises ValueError if movie not found or on invalid ids."""
+    movie = await db.get(MovieModel, movie_id)
+    if not movie:
+        raise ValueError("Movie not found")
+
+    for field in ("name", "year", "time", "imdb", "votes", "description", "price", "certification_id"):
+        val = getattr(payload, field, None)
+        if val is not None:
+            setattr(movie, field, val)
+
+    # determine which associations to update
+    update_genres = getattr(payload, 'genre_ids', None) is not None or getattr(payload, 'genre_names', None) is not None
+    update_directors = getattr(payload, 'director_ids', None) is not None or getattr(payload, 'director_names', None) is not None
+    update_stars = getattr(payload, 'star_ids', None) is not None or getattr(payload, 'star_names', None) is not None
+
+    if update_genres or update_directors or update_stars:
+        related = await prepare_related(
+            db,
+            GenreModel=GenreModel if update_genres else None,
+            DirectorModel=DirectorModel if update_directors else None,
+            StarModel=StarModel if update_stars else None,
+            genre_ids=getattr(payload, 'genre_ids', None),
+            director_ids=getattr(payload, 'director_ids', None),
+            star_ids=getattr(payload, 'star_ids', None),
+            genre_names=getattr(payload, 'genre_names', None),
+            director_names=getattr(payload, 'director_names', None),
+            star_names=getattr(payload, 'star_names', None),
+        )
+
+        await sync_associations(
+            db,
+            movie.id,
+            movie_genres,
+            movie_directors,
+            movie_stars,
+            genres=related.get('genres') if update_genres else None,
+            directors=related.get('directors') if update_directors else None,
+            stars=related.get('stars') if update_stars else None,
+        )
+
+    db.add(movie)
+    await db.commit()
+    await db.refresh(movie)
+    return movie
