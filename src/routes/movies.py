@@ -90,6 +90,9 @@ async def create_movie(
         certification_id=payload.certification_id,
     )
 
+    # add movie to session early to avoid SAWarning when associating new related objects
+    db.add(movie)
+
     # attach relationships if provided (ids)
     genres_list: list = []
     if getattr(payload, 'genre_ids', None):
