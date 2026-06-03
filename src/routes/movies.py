@@ -138,7 +138,7 @@ async def create_movie(
             genres_list.extend(existing + new_objs)
 
     if genres_list:
-        attributes.set_committed_value(movie, 'genres', genres_list)
+        movie.genres = genres_list
 
     # director names
     if getattr(payload, 'director_names', None):
@@ -159,7 +159,7 @@ async def create_movie(
             for d in directors_combined:
                 if d.name not in seen:
                     dedup.append(d); seen.add(d.name)
-            attributes.set_committed_value(movie, 'directors', dedup)
+                    movie.directors = dedup
 
     # star names
     if getattr(payload, 'star_names', None):
@@ -179,7 +179,7 @@ async def create_movie(
             for s in stars_combined:
                 if s.name not in seen:
                     dedup.append(s); seen.add(s.name)
-            attributes.set_committed_value(movie, 'stars', dedup)
+            movie.stars = dedup
 
     db.add(movie)
     await db.commit()
