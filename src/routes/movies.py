@@ -103,21 +103,23 @@ async def create_movie(
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="One or more genre_ids invalid")
         genres_list.extend(genres)
 
+    directors_list: list = []
     if getattr(payload, 'director_ids', None):
         stmt = select(DirectorModel).where(DirectorModel.id.in_(payload.director_ids))
         res = await db.execute(stmt)
         directors = res.scalars().all()
         if len(directors) != len(set(payload.director_ids)):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="One or more director_ids invalid")
-        attributes.set_committed_value(movie, 'directors', directors)
+        directors_list.extend(directors)
 
+    stars_list: list = []
     if getattr(payload, 'star_ids', None):
         stmt = select(StarModel).where(StarModel.id.in_(payload.star_ids))
         res = await db.execute(stmt)
         stars = res.scalars().all()
         if len(stars) != len(set(payload.star_ids)):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="One or more star_ids invalid")
-        attributes.set_committed_value(movie, 'stars', stars)
+        stars_list.extend(stars)
 
     # attach or create by names if provided
     # genre names
@@ -151,8 +153,13 @@ async def create_movie(
             if new_objs:
                 db.add_all(new_objs)
                 await db.flush()
-            directors_combined = getattr(movie, 'directors', []) + existing + new_objs
-            attributes.set_committed_value(movie, 'directors', directors_combined)
+            directors_combined = directors_list + existing + new_objs
+            # deduplicate by name
+            seen = set(); dedup = []
+            for d in directors_combined:
+                if d.name not in seen:
+                    dedup.append(d); seen.add(d.name)
+            attributes.set_committed_value(movie, 'directors', dedup)
 
     # star names
     if getattr(payload, 'star_names', None):
@@ -167,8 +174,12 @@ async def create_movie(
             if new_objs:
                 db.add_all(new_objs)
                 await db.flush()
-            stars_combined = getattr(movie, 'stars', []) + existing + new_objs
-            attributes.set_committed_value(movie, 'stars', stars_combined)
+            stars_combined = stars_list + existing + new_objs
+            seen = set(); dedup = []
+            for s in stars_combined:
+                if s.name not in seen:
+                    dedup.append(s); seen.add(s.name)
+            attributes.set_committed_value(movie, 'stars', dedup)
 
     db.add(movie)
     await db.commit()
