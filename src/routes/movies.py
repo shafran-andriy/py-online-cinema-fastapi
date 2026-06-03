@@ -11,10 +11,11 @@ from database import (
     CertificationModel,
     DirectorModel,
     StarModel,
+    UserModel,
 )
-from database.models.movies import movie_genres, movie_directors, movie_stars
+from database.models.movies import movie_genres, movie_directors, movie_stars, movie_favorites
 from schemas.movies import MovieSummarySchema, GenreSchema
-from security.deps import require_moderator
+from security.deps import require_moderator, get_current_user
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -60,10 +61,39 @@ class MovieUpdateSchema(BaseModel):
 async def list_movies(
     page: int = Query(1, ge=1),
     size: int = Query(10, ge=1, le=100),
+    q: str | None = Query(None, description="Search query for title or description"),
+    genre_id: int | None = Query(None, description="Filter by genre id"),
+    year: int | None = Query(None, description="Filter by release year"),
+    min_imdb: float | None = Query(None, description="Minimum IMDB rating"),
+    sort_by: str = Query("id", description="Sort by: id, price, year, imdb, votes"),
+    order: str = Query("asc", description="Sort order: asc or desc"),
     db: AsyncSession = Depends(get_db),
 ):
     offset = (page - 1) * size
-    stmt = select(MovieModel).options(joinedload(MovieModel.genres)).offset(offset).limit(size)
+    stmt = select(MovieModel).options(joinedload(MovieModel.genres))
+
+    # filters
+    if q:
+        stmt = stmt.where(
+            MovieModel.name.ilike(f"%{q}%") | MovieModel.description.ilike(f"%{q}%")
+        )
+    if genre_id:
+        stmt = stmt.join(movie_genres).where(movie_genres.c.genre_id == genre_id)
+    if year:
+        stmt = stmt.where(MovieModel.year == year)
+    if min_imdb:
+        stmt = stmt.where(MovieModel.imdb >= min_imdb)
+
+    # sorting
+    sort_col = getattr(MovieModel, sort_by, None)
+    if sort_col is None:
+        sort_col = MovieModel.id
+    if order.lower() == "desc":
+        stmt = stmt.order_by(sort_col.desc())
+    else:
+        stmt = stmt.order_by(sort_col.asc())
+
+    stmt = stmt.offset(offset).limit(size)
     result = await db.execute(stmt)
     movies = result.unique().scalars().all()
     return [MovieSummarySchema.model_validate(m) for m in movies]
@@ -344,6 +374,49 @@ async def delete_movie(
     await db.delete(movie)
     await db.commit()
     return {"deleted": True}
+
+
+@router.post("/movies/{movie_id}/favorite/", status_code=status.HTTP_201_CREATED)
+async def add_favorite(
+    movie_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    movie = await db.get(MovieModel, movie_id)
+    if not movie:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Movie not found")
+    # check existing
+    res = await db.execute(select(movie_favorites).where(movie_favorites.c.movie_id == movie_id, movie_favorites.c.user_id == current_user.id))
+    if res.first():
+        return {"favorited": True}
+    await db.execute(movie_favorites.insert().values(movie_id=movie_id, user_id=current_user.id))
+    await db.commit()
+    return {"favorited": True}
+
+
+@router.delete("/movies/{movie_id}/favorite/", status_code=status.HTTP_200_OK)
+async def remove_favorite(
+    movie_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    await db.execute(movie_favorites.delete().where(movie_favorites.c.movie_id == movie_id, movie_favorites.c.user_id == current_user.id))
+    await db.commit()
+    return {"favorited": False}
+
+
+@router.get("/movies/favorites/", response_model=List[MovieSummarySchema], status_code=status.HTTP_200_OK)
+async def list_favorites(
+    page: int = Query(1, ge=1),
+    size: int = Query(10, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    offset = (page - 1) * size
+    stmt = select(MovieModel).join(movie_favorites).where(movie_favorites.c.user_id == current_user.id).offset(offset).limit(size)
+    res = await db.execute(stmt)
+    movies = res.unique().scalars().all()
+    return [MovieSummarySchema.model_validate(m) for m in movies]
 
 
 @router.get("/genres/", response_model=List[GenreSchema], status_code=status.HTTP_200_OK)
