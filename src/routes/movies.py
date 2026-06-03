@@ -12,6 +12,7 @@ from database import (
     DirectorModel,
     StarModel,
 )
+from database.models.movies import movie_genres, movie_directors, movie_stars
 from schemas.movies import MovieSummarySchema, GenreSchema
 from security.deps import require_moderator
 from pydantic import BaseModel
@@ -141,7 +142,7 @@ async def create_movie(
 
     if genres_list:
         for g in genres_list:
-            movie.genres.append(g)
+            await db.execute(movie_genres.insert().values(movie_id=movie.id, genre_id=g.id))
 
     # director names
     if getattr(payload, 'director_names', None):
@@ -163,7 +164,7 @@ async def create_movie(
                 if d.name not in seen:
                     dedup.append(d); seen.add(d.name)
             for d in dedup:
-                movie.directors.append(d)
+                await db.execute(movie_directors.insert().values(movie_id=movie.id, director_id=d.id))
 
     # star names
     if getattr(payload, 'star_names', None):
@@ -184,7 +185,7 @@ async def create_movie(
                 if s.name not in seen:
                     dedup.append(s); seen.add(s.name)
             for s in dedup:
-                movie.stars.append(s)
+                await db.execute(movie_stars.insert().values(movie_id=movie.id, star_id=s.id))
 
     db.add(movie)
     await db.commit()
