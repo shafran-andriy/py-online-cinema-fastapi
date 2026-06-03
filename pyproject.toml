@@ -1,3 +1,12 @@
-﻿# Placeholder: pyproject.toml
+[tool.poetry]
+name = "py-online-cinema-fastapi"
+version = "0.1.0"
+description = "Online cinema project"
+authors = ["you <you@example.com>"]
 
-This file was created as an initial skeleton for branch feature/07-poetry-deps.
+[tool.poetry.dependencies]
+python = "^3.11"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+python_files = "tests/*.py"
