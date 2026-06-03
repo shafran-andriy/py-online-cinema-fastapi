@@ -16,6 +16,7 @@ async def test_movies_crud(client, monkeypatch):
         cert = CertificationModel(name='R')
         db.add(cert)
         await db.flush()
+        await db.commit()
         movie_payload = {
             'name': 'CRUD Movie',
             'year': 2021,
