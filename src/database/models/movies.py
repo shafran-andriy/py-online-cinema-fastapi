@@ -1,6 +1,10 @@
 import uuid
+from datetime import datetime
+from typing import Optional, List
+
 from sqlalchemy import (
-    Table, Column, Integer, String, ForeignKey, Float, UniqueConstraint, DECIMAL
+    Table, Column, Integer, String, ForeignKey, Float, UniqueConstraint,
+    DECIMAL, Boolean, Text, DateTime, func
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -29,7 +33,6 @@ movie_stars = Table(
     Column("star_id", ForeignKey("stars.id"), primary_key=True),
 )
 
-# User favorites association (user can favorite many movies)
 movie_favorites = Table(
     "movie_favorites",
     Base.metadata,
@@ -93,7 +96,7 @@ class MovieModel(Base):
     uuid: Mapped[str] = mapped_column(String(36), unique=True, nullable=False, default=lambda: str(uuid.uuid4()))
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     year: Mapped[int] = mapped_column(Integer, nullable=False)
-    time: Mapped[int] = mapped_column(Integer, nullable=False)  # duration in minutes
+    time: Mapped[int] = mapped_column(Integer, nullable=False)
     imdb: Mapped[float] = mapped_column(Float, nullable=False)
     votes: Mapped[int] = mapped_column(Integer, nullable=False)
     meta_score: Mapped[float] = mapped_column(Float, nullable=True)
@@ -112,3 +115,65 @@ class MovieModel(Base):
 
     def __repr__(self):
         return f"<Movie(id={self.id}, name={self.name}, year={self.year})>"
+
+
+class MovieLikeModel(Base):
+    """Stores user likes/dislikes for movies. UNIQUE(movie_id, user_id)."""
+    __tablename__ = "movie_likes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    movie_id: Mapped[int] = mapped_column(ForeignKey("movies.id", ondelete="CASCADE"), nullable=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    is_like: Mapped[bool] = mapped_column(Boolean, nullable=False)  # True=like, False=dislike
+
+    __table_args__ = (UniqueConstraint("movie_id", "user_id", name="uq_movie_like_user"),)
+
+    def __repr__(self):
+        return f"<MovieLike(movie={self.movie_id}, user={self.user_id}, like={self.is_like})>"
+
+
+class MovieCommentModel(Base):
+    """Comment or reply on a movie. parent_id=None means top-level comment."""
+    __tablename__ = "movie_comments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    movie_id: Mapped[int] = mapped_column(ForeignKey("movies.id", ondelete="CASCADE"), nullable=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    parent_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("movie_comments.id", ondelete="CASCADE"), nullable=True
+    )
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    replies: Mapped[List["MovieCommentModel"]] = relationship(
+        "MovieCommentModel",
+        back_populates="parent",
+        cascade="all, delete-orphan",
+        foreign_keys="[MovieCommentModel.parent_id]",
+    )
+    parent: Mapped[Optional["MovieCommentModel"]] = relationship(
+        "MovieCommentModel",
+        back_populates="replies",
+        remote_side="MovieCommentModel.id",
+        foreign_keys="[MovieCommentModel.parent_id]",
+    )
+
+    def __repr__(self):
+        return f"<MovieComment(id={self.id}, movie={self.movie_id}, parent={self.parent_id})>"
+
+
+class MovieRatingModel(Base):
+    """10-point user rating for a movie. UNIQUE(movie_id, user_id)."""
+    __tablename__ = "movie_ratings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    movie_id: Mapped[int] = mapped_column(ForeignKey("movies.id", ondelete="CASCADE"), nullable=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    score: Mapped[int] = mapped_column(Integer, nullable=False)  # 1–10
+
+    __table_args__ = (UniqueConstraint("movie_id", "user_id", name="uq_movie_rating_user"),)
+
+    def __repr__(self):
+        return f"<MovieRating(movie={self.movie_id}, user={self.user_id}, score={self.score})>"

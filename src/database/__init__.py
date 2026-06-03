@@ -3,10 +3,13 @@ from database.models.accounts import (
     UserModel,
     UserGroupModel,
     UserGroupEnum,
+    GenderEnum,
     ActivationTokenModel,
     PasswordResetTokenModel,
     RefreshTokenModel,
-    UserProfileModel
+    UserProfileModel,
+    NotificationModel,
+    NotificationTypeEnum,
 )
 from database.validators import accounts as accounts_validators
 from database.session_sqlite import get_db, reset_sqlite_database
@@ -18,6 +21,9 @@ from database.models.movies import (
     StarModel,
     DirectorModel,
     CertificationModel,
+    MovieLikeModel,
+    MovieCommentModel,
+    MovieRatingModel,
 )
 
 __all__ = [
@@ -25,10 +31,13 @@ __all__ = [
     "UserModel",
     "UserGroupModel",
     "UserGroupEnum",
+    "GenderEnum",
     "ActivationTokenModel",
     "PasswordResetTokenModel",
     "RefreshTokenModel",
     "UserProfileModel",
+    "NotificationModel",
+    "NotificationTypeEnum",
     "accounts_validators",
     "get_db",
     "reset_sqlite_database",
@@ -37,4 +46,7 @@ __all__ = [
     "StarModel",
     "DirectorModel",
     "CertificationModel",
+    "MovieLikeModel",
+    "MovieCommentModel",
+    "MovieRatingModel",
 ]
