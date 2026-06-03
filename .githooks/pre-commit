@@ -1,0 +1,18 @@
+#!/bin/sh
+# simple pre-commit hook: run quick tests
+
+# Resolve pytest: prefer venv, fall back to system, skip gracefully if absent
+PYTEST=""
+if [ -f "venv/Scripts/pytest.exe" ]; then
+    PYTEST="venv/Scripts/pytest.exe"
+elif [ -f "venv/bin/pytest" ]; then
+    PYTEST="venv/bin/pytest"
+elif command -v pytest >/dev/null 2>&1; then
+    PYTEST="pytest"
+fi
+
+if [ -n "$PYTEST" ]; then
+    PYTHONPATH=src "$PYTEST" -q || exit 1
+else
+    echo "Warning: pytest not found (venv may need to be recreated), skipping pre-commit tests."
+fi
