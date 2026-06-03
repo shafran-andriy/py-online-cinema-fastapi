@@ -1,0 +1,3 @@
+#!/bin/sh
+# simple pre-commit hook: run quick tests
+PYTHONPATH=src pytest -q || exit 1
