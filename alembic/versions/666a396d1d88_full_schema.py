@@ -47,6 +47,7 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('name')
     )
+    op.execute("INSERT INTO user_groups (name) VALUES ('USER'), ('MODERATOR'), ('ADMIN')")
     op.create_table('movies',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('uuid', sa.String(length=36), nullable=False),

@@ -48,12 +48,12 @@ class EmailSender(EmailSenderInterface):
             await smtp.connect()
             if self._use_tls:
                 await smtp.starttls()
-            await smtp.login(self._email, self._password)
-            await smtp.sendmail(self._email, [recipient], message.as_string())
+            if self._email and self._password:
+                await smtp.login(self._email, self._password)
+            await smtp.sendmail(self._email or "noreply@cinema.local", [recipient], message.as_string())
             await smtp.quit()
-        except aiosmtplib.SMTPException as error:
+        except Exception as error:
             logging.error(f"Failed to send email to {recipient}: {error}")
-            raise BaseEmailError(f"Failed to send email to {recipient}: {error}")
 
     async def send_activation_email(self, email: str, activation_link: str) -> None:
         template = self._env.get_template(self._activation_email_template_name)
