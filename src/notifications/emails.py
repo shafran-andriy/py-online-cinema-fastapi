@@ -55,9 +55,9 @@ class EmailSender(EmailSenderInterface):
         except Exception as error:
             logging.error(f"Failed to send email to {recipient}: {error}")
 
-    async def send_activation_email(self, email: str, activation_link: str) -> None:
+    async def send_activation_email(self, email: str, activation_link: str, token: str = "") -> None:
         template = self._env.get_template(self._activation_email_template_name)
-        html_content = template.render(email=email, activation_link=activation_link)
+        html_content = template.render(email=email, activation_link=activation_link, token=token)
         subject = "Account Activation"
         await self._send_email(email, subject, html_content)
 

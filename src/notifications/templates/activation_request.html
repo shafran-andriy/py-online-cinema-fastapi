@@ -1,35 +1,37 @@
 <html lang="">
 <head>
-  <title>Registration</title>
+  <title>Account Activation</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, sans-serif;">
-<div style="border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            padding: 20px; max-width: 480px; margin: 40px auto; background-color: #ffffff; color: #333333;">
+<div style="border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 30px; max-width: 500px; margin: 40px auto; background-color: #ffffff; color: #333333;">
   <h2 style="color: #4CAF50; text-align: center; margin: 0 0 20px; font-size: 24px; font-weight: bold;">
-    Welcome to Our Platform
+    Welcome to Online Cinema
   </h2>
   <p style="margin: 10px 0; line-height: 1.6; font-size: 16px;">
     A registration request was made using your email:
-    <strong id="email" style="color: #4CAF50;">{{ email }}</strong>.
+    <strong style="color: #4CAF50;">{{ email }}</strong>.
   </p>
   <p style="margin: 10px 0; line-height: 1.6; font-size: 16px;">
-    To complete your registration, please use the activation token below:
+    To activate your account, use this token in
+    <strong>POST /api/v1/accounts/activate/</strong>:
   </p>
-  <p style="margin: 20px 0; text-align: center;">
-    <a id="link" href="{{ activation_link }}" style="display: inline-block; background-color: #4CAF50; color: #ffffff;
-            text-decoration: none; font-size: 16px; padding: 10px 20px; border-radius: 4px;">
-     Activate Your Account
-    </a>
+  <div style="background-color: #f0f8f0; border: 2px solid #4CAF50; border-radius: 6px;
+              padding: 16px; margin: 20px 0; text-align: center;">
+    <p style="margin: 0 0 8px; font-size: 13px; color: #666;">Your activation token:</p>
+    <code style="font-size: 14px; color: #1a1a1a; word-break: break-all; display: block;">{{ token }}</code>
+  </div>
+  <p style="margin: 10px 0 20px; line-height: 1.6; font-size: 14px; color: #555555;">
+    Use this token in Swagger UI at
+    <a href="http://localhost:8000/docs" style="color: #4CAF50;">http://localhost:8000/docs</a>
+    → POST /api/v1/accounts/activate/ → enter email + token above.
   </p>
-  <p style="margin: 10px 0; line-height: 1.6; font-size: 16px; color: #666666;">
-    If this wasn't you, please ignore this email.
+  <p style="margin: 10px 0; line-height: 1.6; font-size: 14px; color: #888888;">
+    If this wasn't you, please ignore this email. The token expires in 24 hours.
   </p>
-  <p style="margin: 20px 0 10px; line-height: 1.6; font-size: 16px;">
-    Regards,
-  </p>
-  <p style="margin: 0; font-style: italic; font-size: 16px; color: #4CAF50;">
-    The Mate team
-  </p>
+  <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;">
+  <p style="margin: 0; font-size: 14px; color: #333;">Regards,</p>
+  <p style="margin: 4px 0 0; font-size: 16px; font-weight: bold; color: #4CAF50;">Andrii Shafran</p>
 </div>
 </body>
 </html>

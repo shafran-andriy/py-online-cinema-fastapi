@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 class EmailSenderInterface(ABC):
 
     @abstractmethod
-    async def send_activation_email(self, email: str, activation_link: str) -> None:
+    async def send_activation_email(self, email: str, activation_link: str, token: str = "") -> None:
         ...
 
     @abstractmethod

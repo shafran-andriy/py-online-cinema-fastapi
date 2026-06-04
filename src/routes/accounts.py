@@ -83,6 +83,8 @@ async def register_user(
 
         activation_token = ActivationTokenModel(user_id=new_user.id)
         db.add(activation_token)
+        await db.flush()
+        token_value = activation_token.token
 
         await db.commit()
         await db.refresh(new_user)
@@ -93,7 +95,11 @@ async def register_user(
             detail="An error occurred during user creation.",
         ) from e
     else:
-        await email_sender.send_activation_email(new_user.email, "http://127.0.0.1/accounts/activate/")
+        await email_sender.send_activation_email(
+            new_user.email,
+            "http://localhost:8000/api/v1/accounts/activate/",
+            token=token_value,
+        )
         return UserRegistrationResponseSchema.model_validate(new_user)
 
 
@@ -177,8 +183,12 @@ async def resend_activation(
     if not user or user.is_active:
         return MessageResponseSchema(message=GENERIC_MSG)
 
-    await accounts_service.resend_activation_token(db, cast(int, user.id))
-    await email_sender.send_activation_email(user.email, "http://127.0.0.1/accounts/activate/")
+    new_token = await accounts_service.resend_activation_token(db, cast(int, user.id))
+    await email_sender.send_activation_email(
+        user.email,
+        "http://localhost:8000/api/v1/accounts/activate/",
+        token=new_token.token,
+    )
     return MessageResponseSchema(message=GENERIC_MSG)
 
 

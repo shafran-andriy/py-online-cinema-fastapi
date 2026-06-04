@@ -18,7 +18,7 @@ class DummyEmailSender:
     def __init__(self):
         self.sent = []
 
-    async def send_activation_email(self, email, link):
+    async def send_activation_email(self, email, link, token=""):
         self.sent.append(('activation', email, link))
 
     async def send_activation_complete_email(self, email, link):
