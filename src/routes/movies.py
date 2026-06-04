@@ -17,9 +17,6 @@ from database import (
     MovieRatingModel,
     NotificationModel,
     NotificationTypeEnum,
-    OrderItemModel,
-    OrderModel,
-    OrderStatusEnum,
     CartItemModel,
 )
 from database.models.movies import movie_genres, movie_directors, movie_stars, movie_favorites
