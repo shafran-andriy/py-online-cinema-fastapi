@@ -116,7 +116,7 @@ async def create_order(
 
     order = await _load_order(db, order.id, current_user.id)
     schema = OrderSchema.model_validate(order)
-    schema.payment_url = f"/api/v1/payments/{order.id}/"
+    schema.payment_url = "/api/v1/payments/create-session/"
     return schema
 
 

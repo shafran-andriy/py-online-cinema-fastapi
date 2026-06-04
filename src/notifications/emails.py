@@ -7,6 +7,7 @@ from jinja2 import Environment, FileSystemLoader
 
 from exceptions import BaseEmailError
 from .interfaces import EmailSenderInterface
+from notifications.interfaces import EmailSenderInterface
 
 
 class EmailSender(EmailSenderInterface):
@@ -77,4 +78,10 @@ class EmailSender(EmailSenderInterface):
         template = self._env.get_template(self._password_complete_email_template_name)
         html_content = template.render(email=email, login_link=login_link)
         subject = "Your Password Has Been Successfully Reset"
+        await self._send_email(email, subject, html_content)
+
+    async def send_payment_confirmation_email(self, email: str, order_id: int, amount: float) -> None:
+        template = self._env.get_template("payment_confirmation.html")
+        html_content = template.render(email=email, order_id=order_id, amount=amount)
+        subject = "Payment Confirmation"
         await self._send_email(email, subject, html_content)
