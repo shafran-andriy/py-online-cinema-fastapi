@@ -4,19 +4,90 @@ services:
     image: postgres:15
     restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: online_cinema
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-online_cinema}
     ports:
       - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7
     restart: always
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./:/app
+      - media:/app/media
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+    env_file: .env
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    build: .
+    command: celery -A src.tasks.celery_app worker --loglevel=info
+    volumes:
+      - ./:/app
+      - media:/app/media
+    depends_on:
+      - db
+      - redis
+    env_file: .env
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+
+  beat:
+    build: .
+    command: celery -A src.tasks.celery_app beat --loglevel=info
+    volumes:
+      - ./:/app
+      - media:/app/media
+    depends_on:
+      - db
+      - redis
+    env_file: .env
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+
+  alembic:
+    build: .
+    command: sh scripts/run_alembic.sh
+    volumes:
+      - ./:/app
+    depends_on:
+      - db
+    env_file: .env
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
 
 volumes:
   db_data:
+  media:
