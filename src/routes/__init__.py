@@ -5,9 +5,7 @@ from .cart import router as cart_router
 from .orders import router as orders_router
 from .payments import router as payments_router
 from .admin import router as admin_router
-
-from fastapi import APIRouter
-profiles_router = APIRouter()
+from .profiles import router as profiles_router
 
 __all__ = [
     "accounts_router",

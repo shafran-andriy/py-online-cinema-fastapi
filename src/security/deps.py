@@ -19,9 +19,8 @@ async def get_optional_current_user(
 ):
     if credentials is None:
         return None
-    token = credentials.credentials
     try:
-        payload = jwt_manager.decode_access_token(token)
+        payload = jwt_manager.decode_access_token(credentials.credentials)
     except Exception:
         return None
     user_id = payload.get("user_id")
@@ -36,7 +35,7 @@ async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     jwt_manager: JWTAuthManagerInterface = Depends(get_jwt_auth_manager),
     db: AsyncSession = Depends(get_db),
-):
+) -> UserModel:
     token = credentials.credentials
     try:
         payload = jwt_manager.decode_access_token(token)
