@@ -1,3 +1,10 @@
 #!/bin/sh
 # simple pre-commit hook: run quick tests
-PYTHONPATH=src pytest -q || exit 1
+if [ -f "venv/Scripts/pytest" ]; then
+    PYTEST="venv/Scripts/pytest"
+elif [ -f "venv/bin/pytest" ]; then
+    PYTEST="venv/bin/pytest"
+else
+    PYTEST="pytest"
+fi
+PYTHONPATH=src $PYTEST -q || exit 1
