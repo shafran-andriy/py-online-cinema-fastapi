@@ -4,6 +4,7 @@ from sqlalchemy.orm import selectinload
 
 from database import get_db, MovieModel
 from database.models.cart import CartModel, CartItemModel
+from database.models.orders import OrderModel, OrderItemModel, OrderStatusEnum
 from schemas.cart import CartSchema, CartAddItemSchema
 from security.deps import get_current_user
 
@@ -36,8 +37,17 @@ async def _get_or_create_cart(db, user_id: int) -> CartModel:
 
 
 async def _is_movie_purchased(db, movie_id: int, user_id: int) -> bool:
-    # stub — will check OrderItemModel once feature/04-orders is merged
-    return False
+    stmt = (
+        select(OrderItemModel)
+        .join(OrderModel)
+        .where(
+            OrderModel.user_id == user_id,
+            OrderModel.status == OrderStatusEnum.PAID,
+            OrderItemModel.movie_id == movie_id,
+        )
+    )
+    result = await db.execute(stmt)
+    return result.scalars().first() is not None
 
 
 @router.get("/", response_model=CartSchema)
