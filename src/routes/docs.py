@@ -1,3 +1,17 @@
-﻿# Placeholder: src\routes\docs.py
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
+from fastapi.responses import HTMLResponse
 
-This file was created as an initial skeleton for branch feature/09-swagger-docs.
+from security.deps import get_current_user
+
+router = APIRouter()
+
+
+@router.get("/docs", include_in_schema=False, response_class=HTMLResponse)
+async def swagger_ui(current_user=Depends(get_current_user)):
+    return get_swagger_ui_html(openapi_url="/openapi.json", title="Online Cinema API")
+
+
+@router.get("/redoc", include_in_schema=False, response_class=HTMLResponse)
+async def redoc(current_user=Depends(get_current_user)):
+    return get_redoc_html(openapi_url="/openapi.json", title="Online Cinema API")
