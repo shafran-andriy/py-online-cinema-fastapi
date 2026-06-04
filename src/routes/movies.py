@@ -38,13 +38,18 @@ from fastapi import Body
 router = APIRouter()
 
 
-# ---------------------------------------------------------------------------
-# Helper: check if movie was purchased (stub until feature/04-orders merged)
-# ---------------------------------------------------------------------------
-
 async def _is_movie_purchased(db: AsyncSession, movie_id: int) -> bool:
-    """Returns True if movie appears in any paid order. Stub — always False until OrderItemModel exists."""
-    return False
+    """Returns True if movie appears in any paid order."""
+    stmt = (
+        select(OrderItemModel)
+        .join(OrderModel)
+        .where(
+            OrderModel.status == OrderStatusEnum.PAID,
+            OrderItemModel.movie_id == movie_id,
+        )
+    )
+    result = await db.execute(stmt)
+    return result.scalars().first() is not None
 
 
 # ---------------------------------------------------------------------------
