@@ -1,3 +1,5 @@
+import os
+
 from database.models.base import Base
 from database.models.accounts import (
     UserModel,
@@ -12,7 +14,7 @@ from database.models.accounts import (
     NotificationTypeEnum,
 )
 from database.validators import accounts as accounts_validators
-from database.session_sqlite import get_db, reset_sqlite_database
+from database.session_sqlite import reset_sqlite_database
 
 from database.models.movies import (
     MovieModel,
@@ -24,15 +26,15 @@ from database.models.movies import (
     MovieCommentModel,
     MovieRatingModel,
 )
-
-# cart models
 from database.models.cart import CartModel, CartItemModel
-
-# order models
 from database.models.orders import OrderModel, OrderItemModel, OrderStatusEnum
-
-# payment models
 from database.models.payments import PaymentModel, PaymentItemModel, PaymentStatusEnum
+
+# Use SQLite only in testing; use PostgreSQL in all other environments
+if os.environ.get("ENVIRONMENT") == "testing":
+    from database.session_sqlite import get_db
+else:
+    from database.session import get_db  # noqa: F401
 
 __all__ = [
     "Base",
