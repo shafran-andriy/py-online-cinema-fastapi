@@ -1,6 +1,9 @@
+from datetime import date as date_type
+from typing import Optional
+
 from pydantic import BaseModel, EmailStr, field_validator
 
-from database import accounts_validators
+from database import accounts_validators, UserGroupEnum, GenderEnum
 
 
 class BaseEmailPasswordSchema(BaseModel):
@@ -69,3 +72,45 @@ class TokenRefreshRequestSchema(BaseModel):
 class TokenRefreshResponseSchema(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+
+class ChangePasswordRequestSchema(BaseModel):
+    old_password: str
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_new_password(cls, value: str) -> str:
+        return accounts_validators.validate_password_strength(value)
+
+
+class ChangeGroupRequestSchema(BaseModel):
+    group: UserGroupEnum
+
+
+class UserListItemSchema(BaseModel):
+    id: int
+    email: EmailStr
+    is_active: bool
+    group: str
+
+
+class UserProfileResponseSchema(BaseModel):
+    id: int
+    user_id: int
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    avatar: Optional[str] = None
+    gender: Optional[str] = None
+    date_of_birth: Optional[date_type] = None
+    info: Optional[str] = None
+
+    model_config = {"from_attributes": True}
+
+
+class UserProfileUpdateSchema(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    gender: Optional[GenderEnum] = None
+    date_of_birth: Optional[date_type] = None
+    info: Optional[str] = None

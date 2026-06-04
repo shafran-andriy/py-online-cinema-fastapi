@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from config.dependencies import get_jwt_auth_manager, get_settings
+from config.dependencies import get_jwt_auth_manager
 from security.interfaces import JWTAuthManagerInterface
 from database import get_db, UserModel, UserGroupEnum
 
@@ -19,9 +19,8 @@ async def get_optional_current_user(
 ):
     if credentials is None:
         return None
-    token = credentials.credentials
     try:
-        payload = jwt_manager.decode_access_token(token)
+        payload = jwt_manager.decode_access_token(credentials.credentials)
     except Exception:
         return None
     user_id = payload.get("user_id")
@@ -36,7 +35,7 @@ async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     jwt_manager: JWTAuthManagerInterface = Depends(get_jwt_auth_manager),
     db: AsyncSession = Depends(get_db),
-):
+) -> UserModel:
     token = credentials.credentials
     try:
         payload = jwt_manager.decode_access_token(token)
