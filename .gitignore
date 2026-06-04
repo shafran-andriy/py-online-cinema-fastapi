@@ -226,4 +226,4 @@ tmp_debug*.py
 
 # AI/IDE tool configs
 .ai/
-.claude/settings.local.json
+.claude/
