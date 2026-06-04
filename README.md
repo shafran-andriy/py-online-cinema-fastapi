@@ -1,88 +1,3 @@
-# py-online-cinema-fastapi
-
-An online cinema is a digital platform that allows users to select, watch, and purchase access to movies and other video materials via the internet. These services have become popular due to their convenience, a wide selection of content, and the ability to personalize the user experience.
-
-## Movies API (create / update)
-
-New optional fields supported on movie create and update endpoints:
-
-- genre_names: list[str] - create or attach genres by name inline
-- director_names: list[str] - create or attach directors by name inline
-- star_names: list[str] - create or attach stars by name inline
-
-Behavior:
-- When both ids and names are provided, ids take precedence for existing objects; names will create missing objects if they do not exist.
-- Duplicate names are deduplicated before association.
-
-Create example (POST /api/v1/theater/movies/):
-
-{
-  "name": "New Movie",
-  "year": 2023,
-  "time": 120,
-  "imdb": 7.5,
-  "votes": 1000,
-  "description": "A new film",
-  "price": 4.99,
-  "certification_id": 1,
-  "genre_names": ["Action", "Thriller"],
-  "director_names": ["Famous Director"],
-  "star_names": ["Star A", "Star B"]
-}
-
-Update example (PATCH /api/v1/theater/movies/{id}/):
-
-{
-  "genre_names": ["AddedG"],
-  "director_names": ["AddedDir"]
-}
-
-These fields are documented in Swagger (FastAPI) and appear in the request schema for the endpoints.
-
----
-
-Infrastructure and deployment
-
-1) Local development using virtual environment
-
-- Create and activate venv:
-
-  python -m venv venv
-  venv\Scripts\activate
-
-- Install dependencies:
-
-  pip install -r requirements.txt
-
-2) Running Postgres + Redis with Docker Compose
-
-- Start services:
-
-  docker-compose up -d
-
-- Default credentials (in docker-compose.yml):
-  - POSTGRES_USER=postgres
-  - POSTGRES_PASSWORD=postgres
-  - POSTGRES_DB=online_cinema
-
-3) Migrations (Alembic)
-
-- Alembic is configured to read DATABASE_URL environment variable (used by alembic/env.py). Example:
-
-  export DATABASE_URL=postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/online_cinema
-
-- Generate initial migration (after setting DATABASE_URL and installing dependencies):
-
-  alembic revision --autogenerate -m "init"
-  alembic upgrade head
-
-4) CI
-
-- A GitHub Actions workflow is provided at .github/workflows/ci.yml to run tests on push/PR. It starts Postgres and Redis services and runs pytest.
-
----
-
-If you want, the next step is to run alembic revision --autogenerate locally (requires DATABASE_URL). I can proceed to generate an initial migration file for you here if you provide a live Postgres URL, or proceed to create a starter migration template instead.
 # Online Cinema — FastAPI Backend
 
 REST API backend for an online cinema platform. Users can browse movies, manage a cart, place orders, and pay via Stripe. Admins manage the movie catalog. Built with FastAPI, PostgreSQL, Redis, Celery, MinIO, and Docker.
@@ -92,7 +7,7 @@ REST API backend for an online cinema platform. Users can browse movies, manage 
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
 - [Features & API](#features--api)
-- [Quick Start — Local (venv)](#quick-start--local-venv)
+- [Quick Start — Local (Poetry)](#quick-start--local-poetry)
 - [Quick Start — Docker Compose](#quick-start--docker-compose)
 - [Run in PyCharm](#run-in-pycharm)
 - [Run in VS Code](#run-in-vs-code)
@@ -119,7 +34,7 @@ REST API backend for an online cinema platform. Users can browse movies, manage 
 | Containerization | Docker + Docker Compose |
 | Tests | pytest + pytest-asyncio + httpx + SQLite in-memory |
 | CI/CD | GitHub Actions |
-| Package manager | Poetry / pip |
+| Package manager | Poetry |
 
 ---
 
@@ -146,6 +61,7 @@ py-online-cinema-fastapi/
 │   │   ├── cart.py              # Cart endpoints
 │   │   ├── orders.py            # Order endpoints
 │   │   ├── payments.py          # Stripe payment endpoints
+│   │   ├── profiles.py          # User profile endpoints
 │   │   └── docs.py              # Protected /docs + /redoc
 │   ├── schemas/                 # Pydantic request/response models
 │   ├── services/                # Business logic layer
@@ -159,7 +75,7 @@ py-online-cinema-fastapi/
 ├── tests/                       # pytest test suite (SQLite in-memory)
 ├── .github/
 │   └── workflows/
-│       ├── ci.yml               # CI: lint + test
+│       ├── ci.yml               # CI: lint + typecheck + test
 │       └── main.yml             # CD: deploy to AWS EC2
 ├── docker-compose.yml
 ├── Dockerfile
@@ -179,24 +95,46 @@ All endpoints are prefixed with `/api/v1`.
 |---|---|---|---|
 | POST | `/register/` | Register new user | — |
 | POST | `/activate/` | Activate account via email token | — |
+| POST | `/activation/resend/` | Resend activation email | — |
 | POST | `/login/` | Login, get access + refresh tokens | — |
 | POST | `/logout/` | Invalidate refresh token | Required |
 | POST | `/token/refresh/` | Refresh access token | — |
 | POST | `/password-reset/request/` | Send password reset email | — |
 | POST | `/reset-password/complete/` | Set new password via reset token | — |
+| POST | `/change-password/` | Change password (authenticated) | Required |
+| GET | `/users/` | List all users | Admin |
+| PATCH | `/users/{id}/group/` | Change user group | Admin |
+| POST | `/users/{id}/activate/` | Manually activate account | Admin |
+
+### Profiles — `/api/v1/profiles`
+
+| Method | Path | Description | Auth |
+|---|---|---|---|
+| GET | `/me/` | Get own profile | Required |
+| PATCH | `/me/` | Update profile | Required |
+| POST | `/me/avatar/` | Upload avatar | Required |
 
 ### Movies — `/api/v1/theater`
 
 | Method | Path | Description | Auth |
 |---|---|---|---|
 | GET | `/movies/` | List movies (filter by genre, year, price, search) | — |
-| POST | `/movies/` | Create movie | Admin |
-| PATCH | `/movies/{id}/` | Update movie | Admin |
-| DELETE | `/movies/{id}/` | Delete movie | Admin |
+| POST | `/movies/` | Create movie | Moderator |
+| PATCH | `/movies/{id}/` | Update movie | Moderator |
+| DELETE | `/movies/{id}/` | Delete movie | Moderator |
+| GET | `/movies/{id}/` | Movie detail | — |
 | POST | `/movies/{id}/favorite/` | Add to favorites | Required |
 | DELETE | `/movies/{id}/favorite/` | Remove from favorites | Required |
 | GET | `/movies/favorites/` | List my favorites | Required |
-| GET | `/genres/` | List all genres | — |
+| GET | `/genres/` | List all genres with movie count | — |
+| POST | `/movies/{id}/like/` | Like a movie | Required |
+| POST | `/movies/{id}/dislike/` | Dislike a movie | Required |
+| DELETE | `/movies/{id}/like/` | Remove like/dislike | Required |
+| POST | `/movies/{id}/rate/` | Rate a movie | Required |
+| POST | `/movies/{id}/comments/` | Add comment | Required |
+| GET | `/movies/{id}/comments/` | List comments | — |
+| POST | `/movies/{id}/comments/{cid}/replies/` | Reply to comment | Required |
+| DELETE | `/comments/{cid}/` | Delete comment | Required |
 
 ### Cart — `/api/v1/cart`
 
@@ -226,13 +164,22 @@ All endpoints are prefixed with `/api/v1`.
 | POST | `/webhook/` | Stripe webhook handler | — |
 | GET | `/` | List my payments | Required |
 
+### Admin — `/api/v1/admin`
+
+| Method | Path | Description | Auth |
+|---|---|---|---|
+| GET | `/carts/` | View all users' carts | Moderator |
+| GET | `/orders/` | All orders with filters | Moderator |
+| GET | `/payments/` | All payments with filters | Moderator |
+
 ---
 
-## Quick Start — Local (venv)
+## Quick Start — Local (Poetry)
 
 ### Prerequisites
 
 - Python 3.11+
+- [Poetry](https://python-poetry.org/docs/#installation) installed
 - PostgreSQL 15 running locally (or via Docker)
 - Redis running locally (or via Docker)
 
@@ -241,19 +188,11 @@ All endpoints are prefixed with `/api/v1`.
 git clone https://github.com/<your-username>/py-online-cinema-fastapi.git
 cd py-online-cinema-fastapi
 
-# 2. Create and activate virtual environment
-python -m venv venv
-
-# Windows PowerShell
-venv\Scripts\Activate.ps1
-
-# macOS / Linux
-source venv/bin/activate
-
-# 3. Install dependencies
-pip install -r requirements.txt
-# or with Poetry:
+# 2. Install dependencies
 poetry install
+
+# 3. Activate the virtual environment
+poetry shell
 
 # 4. Copy environment file and fill in values
 cp .env.sample .env
@@ -317,7 +256,7 @@ docker compose down
 
 1. Open the project folder in PyCharm.
 2. **Set Python interpreter:**
-   `File → Settings → Project → Python Interpreter → Add Interpreter → Existing → select venv\Scripts\python.exe`
+   `File → Settings → Project → Python Interpreter → Add Interpreter → Poetry Environment`
 3. **Configure Run/Debug:**
    `Run → Edit Configurations → + → Python`
    - Module: `uvicorn`
@@ -337,7 +276,7 @@ To run tests in PyCharm:
 
 1. Open the project folder in VS Code.
 2. Install the **Python** extension (`ms-python.python`).
-3. Select interpreter: `Ctrl+Shift+P → Python: Select Interpreter → venv\Scripts\python.exe`
+3. Select interpreter: `Ctrl+Shift+P → Python: Select Interpreter → Poetry env`
 4. Create `.vscode/launch.json`:
 
 ```json
@@ -454,24 +393,29 @@ Tests use an in-memory SQLite database — no external services required.
 
 ```bash
 # Run all tests
-PYTHONPATH=src pytest -q
+PYTHONPATH=src ENVIRONMENT=testing poetry run pytest -q
 
 # With verbose output
-PYTHONPATH=src pytest -v
+PYTHONPATH=src ENVIRONMENT=testing poetry run pytest -v
 
 # Run a specific test file
-PYTHONPATH=src pytest tests/test_integration_accounts.py -v
+PYTHONPATH=src ENVIRONMENT=testing poetry run pytest tests/test_integration_accounts.py -v
 
 # With coverage report
-PYTHONPATH=src pytest --cov=src --cov-report=term-missing
+PYTHONPATH=src ENVIRONMENT=testing poetry run pytest --cov=src --cov-report=term-missing
 ```
 
 The test suite covers:
-- Account registration, activation, login, password reset flows
-- Movie CRUD and filtering
-- Favorites, likes, comments, ratings
-- Cart and order management
-- Service-layer unit tests
+- Account registration, activation, login, password reset, change password flows
+- Admin user management (list users, change group, manual activation)
+- User profile CRUD and avatar upload
+- Movie CRUD, filtering, sorting, favorites, likes, comments, ratings
+- Cart management (add, remove, clear, duplicate prevention)
+- Order creation, listing, cancellation
+- Stripe payment sessions, webhooks, payment history
+- Admin views of all carts, orders, and payments
+- Celery cleanup tasks (expired activation, password reset, refresh tokens)
+- End-to-end flows: register → activate → login → cart → order → payment
 
 ---
 
@@ -482,7 +426,8 @@ The test suite covers:
 Triggered on every push to `main` and `feature/**` branches, and on pull requests to `main`.
 
 - **Lint job:** runs `flake8` on `src/`
-- **Test job:** installs dependencies, runs `pytest` against SQLite (no external services needed)
+- **Type check job:** runs `mypy` on `src/`
+- **Test job:** installs dependencies via Poetry, runs `pytest` against SQLite (no external services needed)
 
 ### Continuous Deployment (`.github/workflows/main.yml`)
 
