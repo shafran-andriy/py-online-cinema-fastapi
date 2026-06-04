@@ -12,7 +12,7 @@ from sqlalchemy import (
     func,
     Text,
     Date,
-    UniqueConstraint
+    UniqueConstraint,
 )
 from sqlalchemy.orm import (
     Mapped,
@@ -208,3 +208,29 @@ class RefreshTokenModel(TokenBaseModel):
 
     def __repr__(self):
         return f"<RefreshTokenModel(id={self.id}, token={self.token}, expires_at={self.expires_at})>"
+
+
+class NotificationTypeEnum(str, enum.Enum):
+    LIKE = "like"
+    REPLY = "reply"
+    COMMENT = "comment"
+
+
+class NotificationModel(Base):
+    """In-app notification for a user (e.g. someone replied to their comment)."""
+    __tablename__ = "notifications"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    type: Mapped[NotificationTypeEnum] = mapped_column(Enum(NotificationTypeEnum), nullable=False)
+    related_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    message: Mapped[str] = mapped_column(String(500), nullable=False)
+    is_read: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    user = relationship("UserModel", foreign_keys=[user_id])
+
+    def __repr__(self):
+        return f"<Notification(id={self.id}, user={self.user_id}, type={self.type})>"
