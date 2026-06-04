@@ -26,3 +26,14 @@ app.include_router(cart_router, prefix=f"{api_version_prefix}/cart", tags=["cart
 app.include_router(orders_router, prefix=f"{api_version_prefix}/orders", tags=["orders"])
 app.include_router(payments_router, prefix=f"{api_version_prefix}/payments", tags=["payments"])
 app.include_router(admin_router, prefix=f"{api_version_prefix}/admin", tags=["admin"])
+app = FastAPI(
+    title="Online Cinema API",
+    description=(
+        "REST API for an online cinema platform. "
+        "See feature branches for full implementations: "
+        "accounts (feature/01-auth), movies (feature/02-movies), "
+        "cart (feature/03-cart), orders (feature/04-orders), "
+        "payments (feature/05-payments)."
+    ),
+    version="1.0.0",
+)
