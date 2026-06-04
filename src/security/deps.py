@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from config.dependencies import get_jwt_auth_manager, get_settings
+from config.dependencies import get_jwt_auth_manager
 from security.interfaces import JWTAuthManagerInterface
 from database import get_db, UserModel, UserGroupEnum
 

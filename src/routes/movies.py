@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, status, HTTPException, Query, UploadFile, File
+from fastapi import APIRouter, Depends, status, HTTPException, Query
 from sqlalchemy import select, func, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
@@ -18,12 +18,14 @@ from database import (
     NotificationModel,
     NotificationTypeEnum,
     CartItemModel,
+    OrderItemModel,
+    OrderModel,
+    OrderStatusEnum,
 )
 from database.models.movies import movie_genres, movie_directors, movie_stars, movie_favorites
 from schemas.movies import (
     MovieSummarySchema,
     MovieDetailSchema,
-    GenreSchema,
     GenreWithCountSchema,
     MovieListResponseSchema,
     MovieCommentSchema,
@@ -110,9 +112,13 @@ async def get_movie_detail(movie_id: int, db: AsyncSession = Depends(get_db)):
     avg_result = await db.execute(avg_stmt)
     avg_rating: Optional[float] = avg_result.scalar()
 
-    # like/dislike counts
-    likes_stmt = select(func.count()).where(MovieLikeModel.movie_id == movie_id, MovieLikeModel.is_like == True)
-    dislikes_stmt = select(func.count()).where(MovieLikeModel.movie_id == movie_id, MovieLikeModel.is_like == False)
+    # like/dislike counts — SQLAlchemy ORM uses == True/False for boolean filtering  # noqa: E712
+    likes_stmt = select(func.count()).where(
+        MovieLikeModel.movie_id == movie_id, MovieLikeModel.is_like == True  # noqa: E712
+    )
+    dislikes_stmt = select(func.count()).where(
+        MovieLikeModel.movie_id == movie_id, MovieLikeModel.is_like == False  # noqa: E712
+    )
     likes_count = (await db.execute(likes_stmt)).scalar() or 0
     dislikes_count = (await db.execute(dislikes_stmt)).scalar() or 0
 
@@ -207,7 +213,10 @@ async def list_movies(
 
     if favorites_only:
         if not current_user:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required for favorites_only")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required for favorites_only",
+            )
         stmt = stmt.join(movie_favorites).where(movie_favorites.c.user_id == current_user.id)
 
     count_stmt = select(func.count(func.distinct(MovieModel.id)))
@@ -223,7 +232,9 @@ async def list_movies(
     if director_id:
         count_stmt = count_stmt.join(movie_directors).where(movie_directors.c.director_id == director_id)
     if director_name:
-        count_stmt = count_stmt.join(movie_directors).join(DirectorModel).where(DirectorModel.name.ilike(f"%{director_name}%"))
+        count_stmt = count_stmt.join(movie_directors).join(DirectorModel).where(
+            DirectorModel.name.ilike(f"%{director_name}%")
+        )
     if star_id:
         count_stmt = count_stmt.join(movie_stars).where(movie_stars.c.star_id == star_id)
     if star_name:
@@ -517,7 +528,7 @@ async def list_comments(
     stmt = (
         select(MovieCommentModel)
         .options(selectinload(MovieCommentModel.replies))
-        .where(MovieCommentModel.movie_id == movie_id, MovieCommentModel.parent_id == None)
+        .where(MovieCommentModel.movie_id == movie_id, MovieCommentModel.parent_id == None)  # noqa: E711
         .order_by(MovieCommentModel.created_at.asc())
         .offset(offset).limit(size)
     )
@@ -526,7 +537,11 @@ async def list_comments(
     return [MovieCommentSchema.model_validate(c) for c in comments]
 
 
-@router.post("/movies/{movie_id}/comments/{comment_id}/replies/", response_model=MovieCommentSchema, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/movies/{movie_id}/comments/{comment_id}/replies/",
+    response_model=MovieCommentSchema,
+    status_code=status.HTTP_201_CREATED,
+)
 async def add_reply(
     movie_id: int,
     comment_id: int,

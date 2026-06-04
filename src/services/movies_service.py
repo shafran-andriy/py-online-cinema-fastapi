@@ -3,16 +3,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-essential = None
-
 async def get_or_create_by_names(db: AsyncSession, Model: Type, names: List[str]) -> List:
-    """Find existing Model instances by name and create missing ones. Returns list of instances.
-
-    Args:
-        db: AsyncSession
-        Model: SQLAlchemy model class with ``name`` attribute
-        names: list of names (strings)
-    """
+    """Find existing Model instances by name and create missing ones. Returns list of instances."""
     names = [n.strip() for n in (names or []) if n and n.strip()]
     if not names:
         return []
@@ -50,47 +42,56 @@ async def prepare_related(db: AsyncSession,
                           genre_names: Optional[List[str]] = None,
                           director_names: Optional[List[str]] = None,
                           star_names: Optional[List[str]] = None):
-    """Prepare related model instances (genres, directors, stars) from ids and/or names.
-    Returns dict with keys 'genres','directors','stars' each a list of model instances.
-    """
+    """Prepare related model instances (genres, directors, stars) from ids and/or names."""
     result = {'genres': [], 'directors': [], 'stars': []}
     if GenreModel is not None:
         by_id = await validate_ids(db, GenreModel, genre_ids)
         by_name = await get_or_create_by_names(db, GenreModel, genre_names)
-        # deduplicate by name
-        seen = set(); merged = []
+        seen = set()
+        merged = []
         for o in by_id + by_name:
             if o.name not in seen:
-                seen.add(o.name); merged.append(o)
+                seen.add(o.name)
+                merged.append(o)
         result['genres'] = merged
 
     if DirectorModel is not None:
         by_id = await validate_ids(db, DirectorModel, director_ids)
         by_name = await get_or_create_by_names(db, DirectorModel, director_names)
-        seen = set(); merged = []
+        seen = set()
+        merged = []
         for o in by_id + by_name:
             if o.name not in seen:
-                seen.add(o.name); merged.append(o)
+                seen.add(o.name)
+                merged.append(o)
         result['directors'] = merged
 
     if StarModel is not None:
         by_id = await validate_ids(db, StarModel, star_ids)
         by_name = await get_or_create_by_names(db, StarModel, star_names)
-        seen = set(); merged = []
+        seen = set()
+        merged = []
         for o in by_id + by_name:
             if o.name not in seen:
-                seen.add(o.name); merged.append(o)
+                seen.add(o.name)
+                merged.append(o)
         result['stars'] = merged
 
     return result
 
 
-async def sync_associations(db: AsyncSession, movie_id: int, movie_genres_table, movie_directors_table, movie_stars_table, *, genres: List = None, directors: List = None, stars: List = None):
-    """Synchronize association tables for a movie: delete existing rows and insert provided ones.
-
-    This bypasses ORM lazy-load issues and is intended for use in async endpoints or services.
-    """
-    # genres
+async def sync_associations(
+    db: AsyncSession,
+    movie_id: int,
+    movie_genres_table,
+    movie_directors_table,
+    movie_stars_table,
+    *,
+    genres: List = None,
+    directors: List = None,
+    stars: List = None,
+):
+    """Synchronize association tables for a movie."""
     if genres is not None:
         await db.execute(movie_genres_table.delete().where(movie_genres_table.c.movie_id == movie_id))
         seen = set()
@@ -98,7 +99,6 @@ async def sync_associations(db: AsyncSession, movie_id: int, movie_genres_table,
             if g.id not in seen:
                 seen.add(g.id)
                 await db.execute(movie_genres_table.insert().values(movie_id=movie_id, genre_id=g.id))
-    # directors
     if directors is not None:
         await db.execute(movie_directors_table.delete().where(movie_directors_table.c.movie_id == movie_id))
         seen = set()
@@ -106,7 +106,6 @@ async def sync_associations(db: AsyncSession, movie_id: int, movie_genres_table,
             if d.id not in seen:
                 seen.add(d.id)
                 await db.execute(movie_directors_table.insert().values(movie_id=movie_id, director_id=d.id))
-    # stars
     if stars is not None:
         await db.execute(movie_stars_table.delete().where(movie_stars_table.c.movie_id == movie_id))
         seen = set()
@@ -116,9 +115,20 @@ async def sync_associations(db: AsyncSession, movie_id: int, movie_genres_table,
                 await db.execute(movie_stars_table.insert().values(movie_id=movie_id, star_id=s.id))
 
 
-async def create_movie(db: AsyncSession, payload, *, MovieModel, GenreModel, DirectorModel, StarModel, CertificationModel, movie_genres, movie_directors, movie_stars):
+async def create_movie(
+    db: AsyncSession,
+    payload,
+    *,
+    MovieModel,
+    GenreModel,
+    DirectorModel,
+    StarModel,
+    CertificationModel,
+    movie_genres,
+    movie_directors,
+    movie_stars,
+):
     """Create movie with related genres/directors/stars. Raises ValueError on validation errors."""
-    # validate certification
     cert = await db.get(CertificationModel, payload.certification_id)
     if not cert:
         raise ValueError("Invalid certification_id")
@@ -166,7 +176,19 @@ async def create_movie(db: AsyncSession, payload, *, MovieModel, GenreModel, Dir
     return movie
 
 
-async def update_movie(db: AsyncSession, movie_id: int, payload, *, MovieModel, GenreModel, DirectorModel, StarModel, movie_genres, movie_directors, movie_stars):
+async def update_movie(
+    db: AsyncSession,
+    movie_id: int,
+    payload,
+    *,
+    MovieModel,
+    GenreModel,
+    DirectorModel,
+    StarModel,
+    movie_genres,
+    movie_directors,
+    movie_stars,
+):
     """Update movie fields and associations. Raises ValueError if movie not found or on invalid ids."""
     movie = await db.get(MovieModel, movie_id)
     if not movie:
@@ -177,10 +199,18 @@ async def update_movie(db: AsyncSession, movie_id: int, payload, *, MovieModel, 
         if val is not None:
             setattr(movie, field, val)
 
-    # determine which associations to update
-    update_genres = getattr(payload, 'genre_ids', None) is not None or getattr(payload, 'genre_names', None) is not None
-    update_directors = getattr(payload, 'director_ids', None) is not None or getattr(payload, 'director_names', None) is not None
-    update_stars = getattr(payload, 'star_ids', None) is not None or getattr(payload, 'star_names', None) is not None
+    update_genres = (
+        getattr(payload, 'genre_ids', None) is not None
+        or getattr(payload, 'genre_names', None) is not None
+    )
+    update_directors = (
+        getattr(payload, 'director_ids', None) is not None
+        or getattr(payload, 'director_names', None) is not None
+    )
+    update_stars = (
+        getattr(payload, 'star_ids', None) is not None
+        or getattr(payload, 'star_names', None) is not None
+    )
 
     if update_genres or update_directors or update_stars:
         related = await prepare_related(

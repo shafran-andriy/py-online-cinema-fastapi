@@ -99,6 +99,7 @@ async def _make_moderator(email):
 
 
 async def _seed_movie(name="E2E Movie", price=12.99):
+    movie_id = None
     async for db in get_db():
         cert = CertificationModel(name="PG")
         db.add(cert)
@@ -111,13 +112,19 @@ async def _seed_movie(name="E2E Movie", price=12.99):
         db.add(movie)
         await db.flush()
         await db.commit()
-        return movie.id
+        movie_id = movie.id
+        break
+    return movie_id
 
 
 async def _get_user_id(email):
+    user_id = None
     async for db in get_db():
         res = await db.execute(select(UserModel).where(UserModel.email == email))
-        return res.scalars().first().id
+        user = res.scalars().first()
+        user_id = user.id if user else None
+        break
+    return user_id
 
 
 def auth(token):

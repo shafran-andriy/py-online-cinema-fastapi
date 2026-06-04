@@ -2,7 +2,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import delete, select
+from sqlalchemy import delete
 
 from database import (
     UserModel,
@@ -10,7 +10,6 @@ from database import (
     PasswordResetTokenModel,
     RefreshTokenModel
 )
-from security.token_manager import JWTAuthManager
 from security.utils import generate_secure_token
 
 
@@ -20,7 +19,7 @@ async def create_user_instance(email: str, raw_password: str, group_id: int) -> 
 
 
 async def create_activation_token_for_user(user: UserModel) -> ActivationTokenModel:
-    """Create an ActivationTokenModel instance for given user. Populate token and expiry so it can be used without DB commit."""
+    """Create an ActivationTokenModel instance for given user."""
     user_id = getattr(user, 'id', None)
     token_value = generate_secure_token(64)
     expires_at = datetime.now(timezone.utc) + timedelta(days=1)
@@ -57,7 +56,9 @@ async def request_password_reset(db: AsyncSession, user_id: int) -> PasswordRese
     return token
 
 
-async def create_refresh_token(db: AsyncSession, user_id: int, days_valid: int, token_str: Optional[str] = None) -> RefreshTokenModel:
+async def create_refresh_token(
+    db: AsyncSession, user_id: int, days_valid: int, token_str: Optional[str] = None
+) -> RefreshTokenModel:
     """Create a refresh token record and return it."""
     token_value = token_str or generate_secure_token(64)
     rt = RefreshTokenModel.create(user_id=user_id, days_valid=days_valid, token=token_value)

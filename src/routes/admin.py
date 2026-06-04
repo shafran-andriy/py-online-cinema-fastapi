@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 from database import get_db, MovieModel
 from database.models.cart import CartModel, CartItemModel
 from database.models.orders import OrderModel, OrderItemModel, OrderStatusEnum
-from database.models.payments import PaymentModel, PaymentItemModel, PaymentStatusEnum
+from database.models.payments import PaymentModel, PaymentStatusEnum
 from schemas.cart import CartSchema
 from schemas.orders import OrderSchema
 from schemas.payments import PaymentSchema
