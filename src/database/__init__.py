@@ -14,7 +14,6 @@ from database.models.accounts import (
 from database.validators import accounts as accounts_validators
 from database.session_sqlite import get_db, reset_sqlite_database
 
-# movie models
 from database.models.movies import (
     MovieModel,
     GenreModel,
