@@ -18,3 +18,7 @@ class EmailSenderInterface(ABC):
     @abstractmethod
     async def send_password_reset_complete_email(self, email: str, login_link: str) -> None:
         ...
+
+    @abstractmethod
+    async def send_payment_confirmation_email(self, email: str, order_id: int, amount: float) -> None:
+        ...

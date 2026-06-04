@@ -6,6 +6,7 @@ from config.settings import TestingSettings, Settings, BaseAppSettings
 from notifications import EmailSenderInterface, EmailSender
 from security.interfaces import JWTAuthManagerInterface
 from security.token_manager import JWTAuthManager
+from services.payments import StripeService
 from storages import S3StorageInterface, S3StorageClient
 
 
@@ -52,4 +53,13 @@ def get_s3_storage_client(
         access_key=settings.S3_STORAGE_ACCESS_KEY,
         secret_key=settings.S3_STORAGE_SECRET_KEY,
         bucket_name=settings.S3_BUCKET_NAME
+    )
+
+
+def get_stripe_service(settings: BaseAppSettings = Depends(get_settings)) -> StripeService:
+    return StripeService(
+        api_key=settings.STRIPE_SECRET_KEY,
+        webhook_secret=settings.STRIPE_WEBHOOK_SECRET,
+        success_url=settings.STRIPE_SUCCESS_URL,
+        cancel_url=settings.STRIPE_CANCEL_URL,
     )

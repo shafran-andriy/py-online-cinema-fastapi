@@ -9,6 +9,11 @@ from .accounts import (
     UserLoginRequestSchema,
     TokenRefreshRequestSchema,
     TokenRefreshResponseSchema,
+    ChangePasswordRequestSchema,
+    ChangeGroupRequestSchema,
+    UserListItemSchema,
+    UserProfileResponseSchema,
+    UserProfileUpdateSchema,
 )
 
 __all__ = [
@@ -22,4 +27,9 @@ __all__ = [
     "UserLoginRequestSchema",
     "TokenRefreshRequestSchema",
     "TokenRefreshResponseSchema",
+    "ChangePasswordRequestSchema",
+    "ChangeGroupRequestSchema",
+    "UserListItemSchema",
+    "UserProfileResponseSchema",
+    "UserProfileUpdateSchema",
 ]
