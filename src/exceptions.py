@@ -8,16 +8,16 @@ class AppError(Exception):
     pass
 
 
-class TokenExpiredError(Exception):
+class BaseSecurityError(AppError):
+    """Base exception for security-related errors."""
+    pass
+
+
+class TokenExpiredError(BaseSecurityError):
     """Raised when a JWT token has expired."""
     pass
 
 
-class InvalidTokenError(Exception):
+class InvalidTokenError(BaseSecurityError):
     """Raised when a JWT token is invalid or cannot be decoded."""
-    pass
-
-
-class BaseSecurityError(AppError):
-    """Base exception for security-related errors."""
     pass
