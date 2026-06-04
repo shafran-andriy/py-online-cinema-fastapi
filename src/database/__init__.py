@@ -25,10 +25,13 @@ from database.models.movies import (
     MovieRatingModel,
 )
 
+# cart models
 from database.models.cart import CartModel, CartItemModel
 
+# order models
 from database.models.orders import OrderModel, OrderItemModel, OrderStatusEnum
 
+# payment models
 from database.models.payments import PaymentModel, PaymentItemModel, PaymentStatusEnum
 
 __all__ = [
