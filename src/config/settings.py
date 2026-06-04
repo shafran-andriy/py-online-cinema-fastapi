@@ -25,6 +25,17 @@ class BaseAppSettings(BaseSettings):
     EMAIL_USE_TLS: bool = os.getenv("EMAIL_USE_TLS", "False").lower() == "true"
     MAILHOG_API_PORT: int = os.getenv("MAILHOG_API_PORT", 8025)
 
+    STRIPE_SECRET_KEY: str = os.getenv("STRIPE_SECRET_KEY", "sk_test_placeholder")
+    STRIPE_WEBHOOK_SECRET: str = os.getenv("STRIPE_WEBHOOK_SECRET", "whsec_placeholder")
+    STRIPE_SUCCESS_URL: str = os.getenv(
+        "STRIPE_SUCCESS_URL", "http://localhost:8000/api/v1/payments/success/"
+    )
+    STRIPE_CANCEL_URL: str = os.getenv(
+        "STRIPE_CANCEL_URL", "http://localhost:8000/api/v1/payments/cancel/"
+    )
+
+    PAYMENT_CONFIRMATION_TEMPLATE_NAME: str = "payment_confirmation.html"
+
     S3_STORAGE_HOST: str = os.getenv("MINIO_HOST", "minio-theater")
     S3_STORAGE_PORT: int = os.getenv("MINIO_PORT", 9000)
     S3_STORAGE_ACCESS_KEY: str = os.getenv("MINIO_ROOT_USER", "minioadmin")

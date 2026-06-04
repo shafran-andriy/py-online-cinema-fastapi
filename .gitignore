@@ -216,3 +216,14 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Project-specific
+.env
+test_sqlite.db
+migration_gen.db
+*.db
+tmp_debug*.py
+
+# AI/IDE tool configs
+.ai/
+.claude/settings.local.json
