@@ -1,18 +1,13 @@
 from fastapi import FastAPI
 
-from routes import (
-    movie_router,
-    accounts_router,
-    profiles_router
-)
-
 app = FastAPI(
-    title="Movies homework",
-    description="Description of project"
+    title="Online Cinema API",
+    description=(
+        "REST API for an online cinema platform. "
+        "See feature branches for full implementations: "
+        "accounts (feature/01-auth), movies (feature/02-movies), "
+        "cart (feature/03-cart), orders (feature/04-orders), "
+        "payments (feature/05-payments)."
+    ),
+    version="1.0.0",
 )
-
-api_version_prefix = "/api/v1"
-
-app.include_router(accounts_router, prefix=f"{api_version_prefix}/accounts", tags=["accounts"])
-app.include_router(profiles_router, prefix=f"{api_version_prefix}/profiles", tags=["profiles"])
-app.include_router(movie_router, prefix=f"{api_version_prefix}/theater", tags=["theater"])
