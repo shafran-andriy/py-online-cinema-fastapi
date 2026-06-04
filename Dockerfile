@@ -1,3 +1,3 @@
-﻿# Placeholder: docker-compose.yml
+﻿# Placeholder: Dockerfile
 
 This file was created as an initial skeleton for branch feature/06-docker-compose.

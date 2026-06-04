@@ -13,6 +13,12 @@ app = FastAPI(
     version="1.0.0",
     docs_url=None,
     redoc_url=None,
+    profiles_router
+)
+
+app = FastAPI(
+    title="Movies homework",
+    description="Description of project"
 )
 
 api_version_prefix = "/api/v1"

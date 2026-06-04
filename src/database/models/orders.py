@@ -56,3 +56,6 @@ class OrderItemModel(Base):
 
     def __repr__(self):
         return f"<OrderItem(order={self.order_id}, movie={self.movie_id})>"
+﻿# Placeholder: src\database\models\orders.py
+
+This file was created as an initial skeleton for branch feature/04-orders.
