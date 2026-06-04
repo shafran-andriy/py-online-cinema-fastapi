@@ -17,6 +17,10 @@ from database import (
     MovieRatingModel,
     NotificationModel,
     NotificationTypeEnum,
+    OrderItemModel,
+    OrderModel,
+    OrderStatusEnum,
+    CartItemModel,
 )
 from database.models.movies import movie_genres, movie_directors, movie_stars, movie_favorites
 from schemas.movies import (
@@ -37,13 +41,18 @@ from fastapi import Body
 router = APIRouter()
 
 
-# ---------------------------------------------------------------------------
-# Helper: check if movie was purchased (stub until feature/04-orders merged)
-# ---------------------------------------------------------------------------
-
 async def _is_movie_purchased(db: AsyncSession, movie_id: int) -> bool:
-    """Returns True if movie appears in any paid order. Stub — always False until OrderItemModel exists."""
-    return False
+    """Returns True if movie appears in any paid order."""
+    stmt = (
+        select(OrderItemModel)
+        .join(OrderModel)
+        .where(
+            OrderModel.status == OrderStatusEnum.PAID,
+            OrderItemModel.movie_id == movie_id,
+        )
+    )
+    result = await db.execute(stmt)
+    return result.scalars().first() is not None
 
 
 # ---------------------------------------------------------------------------
@@ -318,17 +327,30 @@ async def update_movie(
 async def delete_movie(
     movie_id: int,
     db: AsyncSession = Depends(get_db),
-    _moderator=Depends(require_moderator),
+    moderator: UserModel = Depends(require_moderator),
 ):
     movie = await db.get(MovieModel, movie_id)
     if not movie:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Movie not found")
-    # 2.7: prevent delete if movie was purchased in a paid order
     if await _is_movie_purchased(db, movie_id):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot delete a movie that has been purchased",
         )
+    cart_count_result = await db.execute(
+        select(func.count()).select_from(CartItemModel).where(CartItemModel.movie_id == movie_id)
+    )
+    cart_count = cart_count_result.scalar() or 0
+    if cart_count > 0:
+        db.add(NotificationModel(
+            user_id=moderator.id,
+            type=NotificationTypeEnum.COMMENT,
+            related_id=movie_id,
+            message=(
+                f"Movie '{movie.name}' (id={movie_id}) was deleted while present "
+                f"in {cart_count} user cart(s)."
+            ),
+        ))
     await db.delete(movie)
     await db.commit()
     return {"deleted": True}
