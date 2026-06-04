@@ -1,3 +1,11 @@
 #!/bin/sh
 # simple pre-commit hook: run quick tests
-PYTHONPATH=src pytest -q || exit 1
+if command -v poetry > /dev/null 2>&1; then
+    poetry run pytest -q || exit 1
+elif [ -f "venv/Scripts/pytest" ]; then
+    PYTHONPATH=src venv/Scripts/pytest -q || exit 1
+elif [ -f "venv/bin/pytest" ]; then
+    PYTHONPATH=src venv/bin/pytest -q || exit 1
+else
+    PYTHONPATH=src pytest -q || exit 1
+fi
