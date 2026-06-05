@@ -223,7 +223,3 @@ test_sqlite.db
 migration_gen.db
 *.db
 tmp_debug*.py
-
-# AI/IDE tool configs
-.ai/
-.claude/
