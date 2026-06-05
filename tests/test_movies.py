@@ -26,7 +26,7 @@ async def test_list_movies(client):
         await db.commit()
         break
 
-    resp = await client.get('/api/v1/theater/movies/')
+    resp = await client.get('/api/v1/movies/')
     assert resp.status_code == 200
     data = resp.json()
     # new response contains total and items

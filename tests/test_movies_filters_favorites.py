@@ -23,7 +23,7 @@ async def test_search_and_favorites(client):
         break
 
     # search q
-    resp = await client.get('/api/v1/theater/movies/?q=Find')
+    resp = await client.get('/api/v1/movies/?q=Find')
     assert resp.status_code == 200
     data = resp.json()
     items = data.get('items') if isinstance(data, dict) else data
@@ -58,18 +58,18 @@ async def test_search_and_favorites(client):
         mid = movie.id
         break
 
-    rf = await client.post(f'/api/v1/theater/movies/{mid}/favorite/', headers=headers)
+    rf = await client.post(f'/api/v1/movies/{mid}/favorite/', headers=headers)
     assert rf.status_code == 201
 
     # list favorites
-    lf = await client.get('/api/v1/theater/movies/favorites/', headers=headers)
+    lf = await client.get('/api/v1/movies/favorites/', headers=headers)
     assert lf.status_code == 200
     fd = lf.json()
     assert any(m['id'] == mid for m in fd)
 
     # remove favorite
-    rm = await client.delete(f'/api/v1/theater/movies/{mid}/favorite/', headers=headers)
+    rm = await client.delete(f'/api/v1/movies/{mid}/favorite/', headers=headers)
     assert rm.status_code == 200
 
-    lf2 = await client.get('/api/v1/theater/movies/favorites/', headers=headers)
+    lf2 = await client.get('/api/v1/movies/favorites/', headers=headers)
     assert not any(m['id'] == mid for m in lf2.json())

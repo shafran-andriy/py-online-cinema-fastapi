@@ -29,17 +29,17 @@ async def test_movies_crud(client, monkeypatch):
         }
         break
 
-    resp = await client.post('/api/v1/theater/movies/', json=movie_payload)
+    resp = await client.post('/api/v1/movies/', json=movie_payload)
     assert resp.status_code == 201
     data = resp.json()
     movie_id = data['id']
 
     # update
     movie_payload['name'] = 'CRUD Movie Updated'
-    resp = await client.patch(f'/api/v1/theater/movies/{movie_id}/', json=movie_payload)
+    resp = await client.patch(f'/api/v1/movies/{movie_id}/', json=movie_payload)
     assert resp.status_code == 200
 
     # delete
-    resp = await client.delete(f'/api/v1/theater/movies/{movie_id}/')
+    resp = await client.delete(f'/api/v1/movies/{movie_id}/')
     assert resp.status_code == 200
     assert resp.json().get('deleted') is True

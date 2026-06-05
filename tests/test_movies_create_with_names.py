@@ -33,7 +33,7 @@ async def test_create_movie_with_names(client):
         }
         break
 
-    resp = await client.post('/api/v1/theater/movies/', json=movie_payload)
+    resp = await client.post('/api/v1/movies/', json=movie_payload)
     assert resp.status_code == 201
     data = resp.json()
     movie_id = data['id']

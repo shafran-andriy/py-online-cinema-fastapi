@@ -114,7 +114,7 @@ All endpoints are prefixed with `/api/v1`.
 | PATCH | `/me/` | Update profile | Required |
 | POST | `/me/avatar/` | Upload avatar | Required |
 
-### Movies — `/api/v1/theater`
+### Movies — `/api/v1`
 
 | Method | Path | Description | Auth |
 |---|---|---|---|

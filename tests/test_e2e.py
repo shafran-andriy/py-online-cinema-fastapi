@@ -295,7 +295,7 @@ async def test_delete_movie_with_cart_creates_notification(client):
 
     mod_id = await _get_user_id(mod_email)
 
-    r = await client.delete(f"/api/v1/theater/movies/{movie_id}/", headers=auth(mod_token))
+    r = await client.delete(f"/api/v1/movies/{movie_id}/", headers=auth(mod_token))
     assert r.status_code == 200, r.text
     assert r.json()["deleted"] is True
 

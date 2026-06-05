@@ -27,7 +27,7 @@ async def test_update_movie_add_names(client):
 
     # now update: add new genre by name and director by name
     payload = {'genre_names': ['AddedG'], 'director_names': ['AddedDir']}
-    resp = await client.patch(f'/api/v1/theater/movies/{movie_id}/', json=payload)
+    resp = await client.patch(f'/api/v1/movies/{movie_id}/', json=payload)
     assert resp.status_code == 200
 
     async for db in get_db():

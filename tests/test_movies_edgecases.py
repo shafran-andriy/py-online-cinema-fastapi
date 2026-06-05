@@ -20,7 +20,7 @@ async def test_create_movie_invalid_cert(client):
         'certification_id': 99999999,
     }
 
-    resp = await client.post('/api/v1/theater/movies/', json=payload)
+    resp = await client.post('/api/v1/movies/', json=payload)
     assert resp.status_code == 400
 
 
@@ -28,5 +28,5 @@ async def test_create_movie_invalid_cert(client):
 async def test_update_movie_not_found(client):
     app.dependency_overrides[require_moderator] = lambda: None
     payload = {'name': 'NoMovie'}
-    resp = await client.patch('/api/v1/theater/movies/9999999/', json=payload)
+    resp = await client.patch('/api/v1/movies/9999999/', json=payload)
     assert resp.status_code == 404

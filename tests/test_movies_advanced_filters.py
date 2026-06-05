@@ -25,7 +25,7 @@ async def test_advanced_filters_and_edgecases(client):
         break
 
     # filter by director_name
-    resp = await client.get('/api/v1/theater/movies/?director_name=DirX')
+    resp = await client.get('/api/v1/movies/?director_name=DirX')
     assert resp.status_code == 200
     data = resp.json()
     assert data['total'] >= 1
@@ -37,19 +37,19 @@ async def test_advanced_filters_and_edgecases(client):
         star = res.scalars().first()
         sid = star.id
         break
-    resp2 = await client.get(f'/api/v1/theater/movies/?star_id={sid}')
+    resp2 = await client.get(f'/api/v1/movies/?star_id={sid}')
     assert resp2.status_code == 200
     assert any(it['name']=='FilterA' for it in resp2.json()['items'])
 
     # price range
-    resp3 = await client.get('/api/v1/theater/movies/?price_min=5&price_max=6')
+    resp3 = await client.get('/api/v1/movies/?price_min=5&price_max=6')
     assert resp3.status_code == 200
     assert any(it['name']=='FilterB' for it in resp3.json()['items'])
 
     # invalid sort_by -> fallback to id
-    resp4 = await client.get('/api/v1/theater/movies/?sort_by=nonexistent')
+    resp4 = await client.get('/api/v1/movies/?sort_by=nonexistent')
     assert resp4.status_code == 200
 
     # favorites_only without auth -> 401
-    resp5 = await client.get('/api/v1/theater/movies/?favorites_only=true')
+    resp5 = await client.get('/api/v1/movies/?favorites_only=true')
     assert resp5.status_code == 401

@@ -109,14 +109,14 @@ async def _make_moderator(email: str):
 
 @pytest.mark.anyio
 async def test_movie_detail_not_found(client):
-    r = await client.get("/api/v1/theater/movies/99999/")
+    r = await client.get("/api/v1/movies/99999/")
     assert r.status_code == 404
 
 
 @pytest.mark.anyio
 async def test_movie_detail_ok(client):
     cert_id, movie_id = await _seed_db()
-    r = await client.get(f"/api/v1/theater/movies/{movie_id}/")
+    r = await client.get(f"/api/v1/movies/{movie_id}/")
     assert r.status_code == 200
     data = r.json()
     assert data["id"] == movie_id
@@ -135,7 +135,7 @@ async def test_movie_detail_ok(client):
 
 @pytest.mark.anyio
 async def test_genres_with_count_empty(client):
-    r = await client.get("/api/v1/theater/genres/")
+    r = await client.get("/api/v1/genres/")
     assert r.status_code == 200
     items = r.json()
     # may be empty or have genres from other tests (DB reset each test)
@@ -161,7 +161,7 @@ async def test_genres_with_count_nonzero(client):
         genre_id = genre.id
         break
 
-    r = await client.get("/api/v1/theater/genres/")
+    r = await client.get("/api/v1/genres/")
     assert r.status_code == 200
     matched = [g for g in r.json() if g["name"] == "ActionTest"]
     assert matched, "Genre not in response"
@@ -175,7 +175,7 @@ async def test_genres_with_count_nonzero(client):
 @pytest.mark.anyio
 async def test_like_requires_auth(client):
     _, movie_id = await _seed_db()
-    r = await client.post(f"/api/v1/theater/movies/{movie_id}/like/")
+    r = await client.post(f"/api/v1/movies/{movie_id}/like/")
     assert r.status_code == 403
 
 
@@ -186,26 +186,26 @@ async def test_like_dislike_cancel(client):
     headers = {"Authorization": f"Bearer {token}"}
 
     # like
-    r = await client.post(f"/api/v1/theater/movies/{movie_id}/like/", headers=headers)
+    r = await client.post(f"/api/v1/movies/{movie_id}/like/", headers=headers)
     assert r.status_code == 200
     assert r.json()["liked"] is True
 
     # detail: likes_count == 1
-    r = await client.get(f"/api/v1/theater/movies/{movie_id}/")
+    r = await client.get(f"/api/v1/movies/{movie_id}/")
     assert r.json()["likes_count"] == 1
     assert r.json()["dislikes_count"] == 0
 
     # switch to dislike (upsert replaces)
-    r = await client.post(f"/api/v1/theater/movies/{movie_id}/dislike/", headers=headers)
+    r = await client.post(f"/api/v1/movies/{movie_id}/dislike/", headers=headers)
     assert r.status_code == 200
-    r = await client.get(f"/api/v1/theater/movies/{movie_id}/")
+    r = await client.get(f"/api/v1/movies/{movie_id}/")
     assert r.json()["likes_count"] == 0
     assert r.json()["dislikes_count"] == 1
 
     # cancel
-    r = await client.delete(f"/api/v1/theater/movies/{movie_id}/like/", headers=headers)
+    r = await client.delete(f"/api/v1/movies/{movie_id}/like/", headers=headers)
     assert r.status_code == 200
-    r = await client.get(f"/api/v1/theater/movies/{movie_id}/")
+    r = await client.get(f"/api/v1/movies/{movie_id}/")
     assert r.json()["dislikes_count"] == 0
 
 
@@ -213,7 +213,7 @@ async def test_like_dislike_cancel(client):
 async def test_like_movie_not_found(client):
     token = await _register_activate_login(client, "liker2@test.com")
     headers = {"Authorization": f"Bearer {token}"}
-    r = await client.post("/api/v1/theater/movies/99999/like/", headers=headers)
+    r = await client.post("/api/v1/movies/99999/like/", headers=headers)
     assert r.status_code == 404
 
 
@@ -224,7 +224,7 @@ async def test_like_movie_not_found(client):
 @pytest.mark.anyio
 async def test_comment_requires_auth(client):
     _, movie_id = await _seed_db()
-    r = await client.post(f"/api/v1/theater/movies/{movie_id}/comments/", json={"body": "Hello"})
+    r = await client.post(f"/api/v1/movies/{movie_id}/comments/", json={"body": "Hello"})
     assert r.status_code == 403
 
 
@@ -235,7 +235,7 @@ async def test_add_and_list_comments(client):
     headers = {"Authorization": f"Bearer {token}"}
 
     r = await client.post(
-        f"/api/v1/theater/movies/{movie_id}/comments/",
+        f"/api/v1/movies/{movie_id}/comments/",
         json={"body": "Great movie!"},
         headers=headers,
     )
@@ -243,7 +243,7 @@ async def test_add_and_list_comments(client):
     comment_id = r.json()["id"]
     assert r.json()["parent_id"] is None
 
-    r = await client.get(f"/api/v1/theater/movies/{movie_id}/comments/")
+    r = await client.get(f"/api/v1/movies/{movie_id}/comments/")
     assert r.status_code == 200
     comments = r.json()
     assert any(c["id"] == comment_id for c in comments)
@@ -257,7 +257,7 @@ async def test_reply_creates_notification(client):
     token_replier = await _register_activate_login(client, "replier@test.com")
 
     r = await client.post(
-        f"/api/v1/theater/movies/{movie_id}/comments/",
+        f"/api/v1/movies/{movie_id}/comments/",
         json={"body": "Original comment"},
         headers={"Authorization": f"Bearer {token_author}"},
     )
@@ -266,7 +266,7 @@ async def test_reply_creates_notification(client):
 
     # Replier replies
     r = await client.post(
-        f"/api/v1/theater/movies/{movie_id}/comments/{comment_id}/replies/",
+        f"/api/v1/movies/{movie_id}/comments/{comment_id}/replies/",
         json={"body": "My reply"},
         headers={"Authorization": f"Bearer {token_replier}"},
     )
@@ -290,14 +290,14 @@ async def test_no_self_reply_notification(client):
     headers = {"Authorization": f"Bearer {token}"}
 
     r = await client.post(
-        f"/api/v1/theater/movies/{movie_id}/comments/",
+        f"/api/v1/movies/{movie_id}/comments/",
         json={"body": "My own comment"},
         headers=headers,
     )
     comment_id = r.json()["id"]
 
     await client.post(
-        f"/api/v1/theater/movies/{movie_id}/comments/{comment_id}/replies/",
+        f"/api/v1/movies/{movie_id}/comments/{comment_id}/replies/",
         json={"body": "Replying to myself"},
         headers=headers,
     )
@@ -315,13 +315,13 @@ async def test_delete_own_comment(client):
     headers = {"Authorization": f"Bearer {token}"}
 
     r = await client.post(
-        f"/api/v1/theater/movies/{movie_id}/comments/",
+        f"/api/v1/movies/{movie_id}/comments/",
         json={"body": "Delete me"},
         headers=headers,
     )
     comment_id = r.json()["id"]
 
-    r = await client.delete(f"/api/v1/theater/comments/{comment_id}/", headers=headers)
+    r = await client.delete(f"/api/v1/comments/{comment_id}/", headers=headers)
     assert r.status_code == 200
     assert r.json()["deleted"] is True
 
@@ -333,14 +333,14 @@ async def test_delete_comment_forbidden_for_other_user(client):
     token_b = await _register_activate_login(client, "other_comment@test.com")
 
     r = await client.post(
-        f"/api/v1/theater/movies/{movie_id}/comments/",
+        f"/api/v1/movies/{movie_id}/comments/",
         json={"body": "Mine"},
         headers={"Authorization": f"Bearer {token_a}"},
     )
     comment_id = r.json()["id"]
 
     r = await client.delete(
-        f"/api/v1/theater/comments/{comment_id}/",
+        f"/api/v1/comments/{comment_id}/",
         headers={"Authorization": f"Bearer {token_b}"},
     )
     assert r.status_code == 403
@@ -355,14 +355,14 @@ async def test_moderator_can_delete_any_comment(client):
     await _make_moderator(mod_email)
 
     r = await client.post(
-        f"/api/v1/theater/movies/{movie_id}/comments/",
+        f"/api/v1/movies/{movie_id}/comments/",
         json={"body": "User comment"},
         headers={"Authorization": f"Bearer {token_user}"},
     )
     comment_id = r.json()["id"]
 
     r = await client.delete(
-        f"/api/v1/theater/comments/{comment_id}/",
+        f"/api/v1/comments/{comment_id}/",
         headers={"Authorization": f"Bearer {token_mod}"},
     )
     assert r.status_code == 200
@@ -378,12 +378,12 @@ async def test_rate_movie(client):
     token = await _register_activate_login(client, "rater@test.com")
     headers = {"Authorization": f"Bearer {token}"}
 
-    r = await client.post(f"/api/v1/theater/movies/{movie_id}/rate/", json={"score": 8}, headers=headers)
+    r = await client.post(f"/api/v1/movies/{movie_id}/rate/", json={"score": 8}, headers=headers)
     assert r.status_code == 200
     assert r.json()["score"] == 8
 
     # Detail shows avg_rating
-    r = await client.get(f"/api/v1/theater/movies/{movie_id}/")
+    r = await client.get(f"/api/v1/movies/{movie_id}/")
     assert r.json()["avg_rating"] == 8.0
 
 
@@ -393,7 +393,7 @@ async def test_rate_out_of_range(client):
     token = await _register_activate_login(client, "rater2@test.com")
     headers = {"Authorization": f"Bearer {token}"}
 
-    r = await client.post(f"/api/v1/theater/movies/{movie_id}/rate/", json={"score": 11}, headers=headers)
+    r = await client.post(f"/api/v1/movies/{movie_id}/rate/", json={"score": 11}, headers=headers)
     assert r.status_code == 422
 
 
@@ -404,10 +404,10 @@ async def test_rate_upsert(client):
     token = await _register_activate_login(client, "rater3@test.com")
     headers = {"Authorization": f"Bearer {token}"}
 
-    await client.post(f"/api/v1/theater/movies/{movie_id}/rate/", json={"score": 5}, headers=headers)
-    await client.post(f"/api/v1/theater/movies/{movie_id}/rate/", json={"score": 9}, headers=headers)
+    await client.post(f"/api/v1/movies/{movie_id}/rate/", json={"score": 5}, headers=headers)
+    await client.post(f"/api/v1/movies/{movie_id}/rate/", json={"score": 9}, headers=headers)
 
-    r = await client.get(f"/api/v1/theater/movies/{movie_id}/")
+    r = await client.get(f"/api/v1/movies/{movie_id}/")
     assert r.json()["avg_rating"] == 9.0
 
 
@@ -417,11 +417,11 @@ async def test_delete_rating(client):
     token = await _register_activate_login(client, "rater4@test.com")
     headers = {"Authorization": f"Bearer {token}"}
 
-    await client.post(f"/api/v1/theater/movies/{movie_id}/rate/", json={"score": 7}, headers=headers)
-    r = await client.delete(f"/api/v1/theater/movies/{movie_id}/rate/", headers=headers)
+    await client.post(f"/api/v1/movies/{movie_id}/rate/", json={"score": 7}, headers=headers)
+    r = await client.delete(f"/api/v1/movies/{movie_id}/rate/", headers=headers)
     assert r.status_code == 200
 
-    r = await client.get(f"/api/v1/theater/movies/{movie_id}/")
+    r = await client.get(f"/api/v1/movies/{movie_id}/")
     assert r.json()["avg_rating"] is None
 
 
@@ -443,13 +443,13 @@ async def test_mark_notification_read(client):
 
     # create comment → reply → triggers notification
     r = await client.post(
-        f"/api/v1/theater/movies/{movie_id}/comments/",
+        f"/api/v1/movies/{movie_id}/comments/",
         json={"body": "Notification test comment"},
         headers={"Authorization": f"Bearer {token_author}"},
     )
     comment_id = r.json()["id"]
     await client.post(
-        f"/api/v1/theater/movies/{movie_id}/comments/{comment_id}/replies/",
+        f"/api/v1/movies/{movie_id}/comments/{comment_id}/replies/",
         json={"body": "Reply triggers notif"},
         headers={"Authorization": f"Bearer {token_replier}"},
     )
@@ -477,13 +477,13 @@ async def test_mark_others_notification_forbidden(client):
     token_b = await _register_activate_login(client, "notif_b@test.com")
 
     r = await client.post(
-        f"/api/v1/theater/movies/{movie_id}/comments/",
+        f"/api/v1/movies/{movie_id}/comments/",
         json={"body": "A comment"},
         headers={"Authorization": f"Bearer {token_a}"},
     )
     comment_id = r.json()["id"]
     await client.post(
-        f"/api/v1/theater/movies/{movie_id}/comments/{comment_id}/replies/",
+        f"/api/v1/movies/{movie_id}/comments/{comment_id}/replies/",
         json={"body": "Triggers notif for A"},
         headers={"Authorization": f"Bearer {token_b}"},
     )
@@ -512,7 +512,7 @@ async def test_delete_movie_not_purchased(client):
     await _make_moderator(mod_email)
 
     r = await client.delete(
-        f"/api/v1/theater/movies/{movie_id}/",
+        f"/api/v1/movies/{movie_id}/",
         headers={"Authorization": f"Bearer {token_mod}"},
     )
     assert r.status_code == 200
@@ -524,7 +524,7 @@ async def test_delete_movie_requires_moderator(client):
     _, movie_id = await _seed_db()
     token = await _register_activate_login(client, "regular_del@test.com")
     r = await client.delete(
-        f"/api/v1/theater/movies/{movie_id}/",
+        f"/api/v1/movies/{movie_id}/",
         headers={"Authorization": f"Bearer {token}"},
     )
     assert r.status_code == 403
