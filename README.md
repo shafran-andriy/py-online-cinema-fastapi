@@ -246,7 +246,7 @@ docker compose down
 | Service | URL |
 |---|---|
 | API | http://localhost:8000 |
-| Swagger UI | http://localhost:8000/docs (JWT required) |
+| Swagger UI | http://localhost:8000/docs |
 | MinIO Console | http://localhost:9001 |
 | MailHog Web UI | http://localhost:8025 |
 
