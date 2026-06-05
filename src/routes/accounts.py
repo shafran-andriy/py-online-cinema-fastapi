@@ -47,7 +47,28 @@ router = APIRouter()
     "/register/",
     response_model=UserRegistrationResponseSchema,
     summary="User Registration",
-    description="Register a new user with an email and password.",
+    description="""
+Register a new user account with email and password.
+
+**Request body:**
+```json
+{
+  "email": "user@example.com",
+  "password": "StrongPass1!"
+}
+```
+
+**Password requirements:** minimum 8 characters, at least one uppercase letter, one digit.
+
+**On success (201):**
+- User is created with `is_active = false`.
+- An activation email with a token is sent to the provided address.
+- The user must activate the account before logging in.
+
+**Error responses:**
+- `409` — A user with this email already exists.
+- `422` — Validation error (invalid email format or weak password).
+    """,
     status_code=status.HTTP_201_CREATED,
 )
 async def register_user(
@@ -55,6 +76,22 @@ async def register_user(
         db: AsyncSession = Depends(get_db),
         email_sender: EmailSenderInterface = Depends(get_accounts_email_notificator),
 ) -> UserRegistrationResponseSchema:
+    """
+    Create a new user account.
+
+    Assigns the user to the default 'USER' group, generates an activation token,
+    and sends an activation email. The account remains inactive until confirmed.
+
+    Args:
+        user_data: UserRegistrationRequestSchema with email and password.
+
+    Raises:
+        409: User with this email already exists.
+        500: Default user group not found in database.
+
+    Returns:
+        UserRegistrationResponseSchema: id and email of the created user.
+    """
     stmt = select(UserModel).where(UserModel.email == user_data.email)
     result = await db.execute(stmt)
     if result.scalars().first():
@@ -109,7 +146,27 @@ async def register_user(
     "/activate/",
     response_model=MessageResponseSchema,
     summary="Activate User Account",
-    description="Activate a user's account using their email and activation token.",
+    description="""
+Activate a user account using the token received by email after registration.
+
+**Request body:**
+```json
+{
+  "email": "user@example.com",
+  "token": "abc123xyz..."
+}
+```
+
+The token is sent to the user's email and is valid for **24 hours**.
+
+**On success:** Account is activated and a confirmation email is sent.
+
+**Error responses:**
+- `400` — Invalid token, expired token, or token/email mismatch.
+- `400` — Account is already active.
+
+After activation, use `POST /api/v1/accounts/login/` to obtain tokens.
+    """,
     status_code=status.HTTP_200_OK,
 )
 async def activate_account(
@@ -117,6 +174,21 @@ async def activate_account(
         db: AsyncSession = Depends(get_db),
         email_sender: EmailSenderInterface = Depends(get_accounts_email_notificator),
 ) -> MessageResponseSchema:
+    """
+    Activate a user account via the email token.
+
+    Looks up the ActivationToken by email+token pair. If found and not expired,
+    sets user.is_active = True and deletes the token. Sends a confirmation email.
+
+    Args:
+        activation_data: UserActivationRequestSchema with email and token.
+
+    Raises:
+        400: Token is invalid, expired, or account is already active.
+
+    Returns:
+        MessageResponseSchema: Success message.
+    """
     stmt = (
         select(ActivationTokenModel)
         .options(joinedload(ActivationTokenModel.user))
@@ -312,7 +384,32 @@ async def change_password(
     "/login/",
     response_model=UserLoginResponseSchema,
     summary="User Login",
-    description="Authenticate user and return access and refresh tokens.",
+    description="""
+Authenticate a user and return a JWT access token and refresh token.
+
+**Request body:**
+```json
+{
+  "email": "user@example.com",
+  "password": "StrongPass1!"
+}
+```
+
+**Response:**
+```json
+{
+  "access_token": "eyJ...",
+  "refresh_token": "eyJ...",
+  "token_type": "bearer"
+}
+```
+
+Use the `access_token` as `Bearer <token>` in the `Authorization` header for protected endpoints.
+The `refresh_token` is used to get a new access token via `POST /api/v1/accounts/token/refresh/`.
+
+**Error responses:**
+- `400` — Invalid credentials or account is not yet activated.
+    """,
     status_code=status.HTTP_200_OK,
 )
 async def login_user(
@@ -321,6 +418,21 @@ async def login_user(
         jwt_manager: JWTAuthManagerInterface = Depends(get_jwt_auth_manager),
         settings: BaseAppSettings = Depends(get_settings),
 ) -> UserLoginResponseSchema:
+    """
+    Authenticate a user and issue JWT tokens.
+
+    Verifies email, active status, and password. Creates and stores a RefreshToken
+    in the database. Returns access_token (short-lived) and refresh_token (long-lived).
+
+    Args:
+        data: UserLoginRequestSchema with email and password.
+
+    Raises:
+        400: Invalid credentials or account is inactive.
+
+    Returns:
+        UserLoginResponseSchema: access_token, refresh_token, token_type.
+    """
     stmt = select(UserModel).filter_by(email=data.email)
     result = await db.execute(stmt)
     user = result.scalars().first()
@@ -350,7 +462,23 @@ async def login_user(
     "/logout/",
     response_model=MessageResponseSchema,
     summary="User Logout",
-    description="Log out user by revoking their refresh token.",
+    description="""
+Revoke the user's refresh token to log them out.
+
+**Request body:**
+```json
+{
+  "refresh_token": "eyJ..."
+}
+```
+
+The refresh token is deleted from the database. Subsequent calls to `token/refresh/`
+with this token will return `400`.
+
+The access token remains valid until it expires (use short TTL in production).
+
+**No auth header required** — only the refresh token in the request body.
+    """,
     status_code=status.HTTP_200_OK,
 )
 async def logout_user(
@@ -358,6 +486,18 @@ async def logout_user(
         db: AsyncSession = Depends(get_db),
         jwt_manager: JWTAuthManagerInterface = Depends(get_jwt_auth_manager),
 ) -> MessageResponseSchema:
+    """
+    Revoke the provided refresh token to invalidate the user session.
+
+    Deletes the RefreshToken record from the database regardless of token validity.
+    Safe to call even with an expired token.
+
+    Args:
+        data: TokenRefreshRequestSchema with refresh_token.
+
+    Returns:
+        MessageResponseSchema: "Logged out." confirmation message.
+    """
     try:
         jwt_manager.verify_refresh_token_or_raise(data.refresh_token)
     except BaseSecurityError:
@@ -372,7 +512,27 @@ async def logout_user(
     "/token/refresh/",
     response_model=TokenRefreshResponseSchema,
     summary="Refresh Access Token",
-    description="Exchange a valid refresh token for a new access token.",
+    description="""
+Exchange a valid refresh token for a new access token without re-entering credentials.
+
+**Request body:**
+```json
+{
+  "refresh_token": "eyJ..."
+}
+```
+
+**Response:**
+```json
+{
+  "access_token": "eyJ...",
+  "token_type": "bearer"
+}
+```
+
+**Error responses:**
+- `400` — Refresh token is invalid, expired, or not found in the database (already revoked).
+    """,
     status_code=status.HTTP_200_OK,
 )
 async def refresh_access_token(
@@ -380,6 +540,21 @@ async def refresh_access_token(
         db: AsyncSession = Depends(get_db),
         jwt_manager: JWTAuthManagerInterface = Depends(get_jwt_auth_manager),
 ) -> TokenRefreshResponseSchema:
+    """
+    Issue a new access token using a valid refresh token.
+
+    Verifies JWT signature, checks token exists in DB (not revoked),
+    then creates a new access token for the token owner.
+
+    Args:
+        data: TokenRefreshRequestSchema with refresh_token.
+
+    Raises:
+        400: Token is invalid, expired, or revoked (not in DB).
+
+    Returns:
+        TokenRefreshResponseSchema: New access_token.
+    """
     try:
         jwt_manager.decode_refresh_token(data.refresh_token)
     except BaseSecurityError:
@@ -404,7 +579,21 @@ async def refresh_access_token(
     "/users/",
     response_model=List[UserListItemSchema],
     summary="List All Users",
-    description="Returns a paginated list of all registered users. Accessible by Admins and Moderators.",
+    description="""
+Returns a paginated list of all registered users in the system.
+
+**Query parameters:**
+- `page` (int, default: 1) — page number
+- `size` (int, default: 20) — items per page
+
+**Response fields per user:**
+- `id` — user ID
+- `email` — user email
+- `is_active` — whether the account is activated
+- `group` — role: `USER` | `MODERATOR` | `ADMIN`
+
+**Auth:** Admin role required.
+    """,
     status_code=status.HTTP_200_OK,
 )
 async def list_users(
@@ -413,6 +602,16 @@ async def list_users(
         page: int = 1,
         size: int = 20,
 ) -> List[UserListItemSchema]:
+    """
+    Retrieve a paginated list of all users with their roles.
+
+    Args:
+        page: Page number (1-based).
+        size: Number of users per page.
+
+    Returns:
+        list[UserListItemSchema]: id, email, is_active, group for each user.
+    """
     offset = (page - 1) * size
     stmt = (
         select(UserModel)
@@ -438,7 +637,26 @@ async def list_users(
     "/users/{user_id}/group/",
     response_model=MessageResponseSchema,
     summary="Change User Group",
-    description="Assign a different group (role) to a user. Admin only.",
+    description="""
+Assign a different role (group) to a specific user.
+
+**Path parameter:**
+- `user_id` (int) — ID of the user to update.
+
+**Request body:**
+```json
+{
+  "group": "MODERATOR"
+}
+```
+
+**Available groups:** `USER` | `MODERATOR` | `ADMIN`
+
+**Error responses:**
+- `404` — User not found.
+
+**Auth:** Admin role required.
+    """,
     status_code=status.HTTP_200_OK,
 )
 async def change_user_group(
@@ -447,6 +665,19 @@ async def change_user_group(
         db: AsyncSession = Depends(get_db),
         _admin: UserModel = Depends(require_admin),
 ) -> MessageResponseSchema:
+    """
+    Update the role (group) of a specific user.
+
+    Args:
+        user_id: ID of the user to update.
+        data: ChangeGroupRequestSchema with the target group name.
+
+    Raises:
+        404: User not found.
+
+    Returns:
+        MessageResponseSchema: Confirmation message with the new group.
+    """
     stmt = select(UserModel).options(selectinload(UserModel.group)).where(UserModel.id == user_id)
     result = await db.execute(stmt)
     user = result.scalars().first()
@@ -471,7 +702,20 @@ async def change_user_group(
     "/users/{user_id}/activate/",
     response_model=MessageResponseSchema,
     summary="Manually Activate User",
-    description="Manually activate a user account without requiring an activation token. Admin only.",
+    description="""
+Force-activate a user account without requiring the email activation token.
+
+Useful when a user cannot access their email or when the activation email was not received.
+
+**Path parameter:**
+- `user_id` (int) — ID of the user to activate.
+
+**Error responses:**
+- `404` — User not found.
+- `400` — Account is already active.
+
+**Auth:** Admin role required.
+    """,
     status_code=status.HTTP_200_OK,
 )
 async def activate_user_manually(
@@ -479,6 +723,19 @@ async def activate_user_manually(
         db: AsyncSession = Depends(get_db),
         _admin: UserModel = Depends(require_admin),
 ) -> MessageResponseSchema:
+    """
+    Manually set a user's is_active flag to True without token verification.
+
+    Args:
+        user_id: ID of the user to activate.
+
+    Raises:
+        404: User not found.
+        400: Account is already active.
+
+    Returns:
+        MessageResponseSchema: Confirmation of activation.
+    """
     stmt = select(UserModel).where(UserModel.id == user_id)
     result = await db.execute(stmt)
     user = result.scalars().first()

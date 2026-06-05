@@ -87,13 +87,57 @@ async def _process_paid_session(session_obj, db, email_svc: EmailSenderInterface
             pass
 
 
-@router.post("/create-session/", response_model=CreateSessionResponseSchema)
+@router.post(
+    "/create-session/",
+    response_model=CreateSessionResponseSchema,
+    summary="Create Stripe Checkout session",
+    description="""
+Creates a Stripe Checkout session for a pending order and returns the payment URL.
+
+**Request body:**
+```json
+{
+  "order_id": 12
+}
+```
+
+**Validation:**
+- The order must exist and belong to the current user — `404` if not.
+- The order must be in `pending` status — `400` if already paid or canceled.
+
+**Response:**
+```json
+{
+  "checkout_url": "https://checkout.stripe.com/pay/cs_test_...",
+  "session_id": "cs_test_..."
+}
+```
+
+Redirect the user to `checkout_url` to complete payment on Stripe's hosted page.
+After successful payment Stripe redirects to `/api/v1/payments/success/?session_id=...`.
+
+**Auth:** Bearer token required.
+    """,
+)
 async def create_payment_session(
     body: CreatePaymentSessionSchema,
     db=Depends(get_db),
     current_user=Depends(get_current_user),
     stripe_svc: StripeService = Depends(get_stripe_service),
 ):
+    """
+    Create a Stripe Checkout session for the specified pending order.
+
+    Args:
+        body: CreatePaymentSessionSchema with order_id (int).
+
+    Raises:
+        404: Order not found or does not belong to the current user.
+        400: Order is not in PENDING status.
+
+    Returns:
+        CreateSessionResponseSchema: checkout_url and session_id from Stripe.
+    """
     order = await _load_order_with_items(db, body.order_id, user_id=current_user.id)
     if not order:
         raise HTTPException(status_code=404, detail="Order not found.")
@@ -104,13 +148,48 @@ async def create_payment_session(
     return CreateSessionResponseSchema(checkout_url=session.url, session_id=session.id)
 
 
-@router.get("/success/")
+@router.get(
+    "/success/",
+    summary="Stripe success callback",
+    description="""
+Handles the redirect from Stripe after a successful payment.
+
+**Query parameter:**
+- `session_id` (str) — Stripe Checkout session ID (provided automatically by Stripe redirect).
+
+**On success:**
+- Verifies the session payment status is `paid`.
+- Creates a `PaymentModel` record (idempotent — safe to call multiple times).
+- Updates the associated order status to `PAID`.
+- Sends a payment confirmation email to the user.
+
+**Note:** This endpoint is called by Stripe redirect, not directly by the user.
+Typically opened in the browser after the user completes payment on Stripe.
+
+Returns `400` if payment was not completed.
+    """,
+)
 async def payment_success(
-    session_id: str = Query(...),
+    session_id: str = Query(..., description="Stripe Checkout session ID"),
     db=Depends(get_db),
     stripe_svc: StripeService = Depends(get_stripe_service),
     email_svc: EmailSenderInterface = Depends(get_accounts_email_notificator),
 ):
+    """
+    Handle Stripe success redirect and finalize the payment.
+
+    Retrieves the Stripe session, verifies payment status, creates a PaymentModel,
+    updates the order to PAID, and sends a confirmation email. Operation is idempotent.
+
+    Args:
+        session_id: Stripe Checkout session ID from query string.
+
+    Raises:
+        400: Stripe session payment_status is not 'paid'.
+
+    Returns:
+        dict: {"status": "paid", "session_id": session_id}
+    """
     session = stripe_svc.retrieve_session(session_id)
     if session.payment_status != "paid":
         raise HTTPException(status_code=400, detail="Payment not completed.")
@@ -118,18 +197,78 @@ async def payment_success(
     return {"status": "paid", "session_id": session_id}
 
 
-@router.get("/cancel/")
-async def payment_cancel(session_id: str = Query(...)):
+@router.get(
+    "/cancel/",
+    summary="Stripe cancel callback",
+    description="""
+Handles the redirect from Stripe when the user cancels the payment.
+
+**Query parameter:**
+- `session_id` (str) — Stripe Checkout session ID.
+
+The order remains in `pending` status and can be paid later by creating a new session.
+
+**Note:** This endpoint is called by Stripe redirect when the user clicks "Back" or "Cancel"
+on the Stripe Checkout page.
+    """,
+)
+async def payment_cancel(
+    session_id: str = Query(..., description="Stripe Checkout session ID"),
+):
+    """
+    Handle Stripe cancel redirect when the user abandons the payment.
+
+    The order is NOT canceled — it remains PENDING and can be retried.
+
+    Args:
+        session_id: Stripe Checkout session ID from query string.
+
+    Returns:
+        dict: {"status": "canceled", "session_id": session_id}
+    """
     return {"status": "canceled", "session_id": session_id}
 
 
-@router.post("/webhook/")
+@router.post(
+    "/webhook/",
+    summary="Stripe webhook handler",
+    description="""
+Receives and processes Stripe webhook events. Called automatically by Stripe — **not by clients**.
+
+**Handled events:**
+- `checkout.session.completed` with `payment_status = paid`:
+  Creates payment record, marks order as PAID, sends confirmation email.
+- `payment_intent.succeeded`:
+  Acknowledged but not processed separately (handled via session event above).
+
+**Security:** Stripe signature in `stripe-signature` header is verified using `STRIPE_WEBHOOK_SECRET`.
+Returns `400` if the signature is invalid.
+
+**Setup:** Configure the webhook URL in Stripe Dashboard:
+`https://your-domain.com/api/v1/payments/webhook/`
+
+**Auth:** No user auth — authenticated via Stripe signature.
+    """,
+)
 async def stripe_webhook(
     request: Request,
     db=Depends(get_db),
     stripe_svc: StripeService = Depends(get_stripe_service),
     email_svc: EmailSenderInterface = Depends(get_accounts_email_notificator),
 ):
+    """
+    Process incoming Stripe webhook events.
+
+    Verifies the Stripe-Signature header, then handles:
+    - checkout.session.completed → finalize payment and mark order as PAID.
+    - payment_intent.succeeded → no-op (metadata only on session events).
+
+    Raises:
+        400: Invalid webhook signature.
+
+    Returns:
+        dict: {"received": True} on successful processing.
+    """
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature", "")
     try:
@@ -149,11 +288,37 @@ async def stripe_webhook(
     return {"received": True}
 
 
-@router.get("/", response_model=list[PaymentSchema])
+@router.get(
+    "/",
+    response_model=list[PaymentSchema],
+    summary="List my payments",
+    description="""
+Returns all successful payments made by the currently authenticated user, sorted by date (newest first).
+
+Each payment record includes:
+- `id` — payment identifier
+- `order_id` — associated order
+- `amount` — total amount charged (in currency units, e.g. USD)
+- `status` — `SUCCESSFUL` | `CANCELED` | `REFUNDED`
+- `external_payment_id` — Stripe session ID for reference
+- `items` — individual items with `price_at_payment` for each movie
+
+**Auth:** Bearer token required.
+    """,
+)
 async def list_payments(
     db=Depends(get_db),
     current_user=Depends(get_current_user),
 ):
+    """
+    Retrieve all payment records for the authenticated user.
+
+    Sorted by created_at descending (newest first).
+    Each payment includes its items with the price locked at time of payment.
+
+    Returns:
+        list[PaymentSchema]: All payments belonging to the current user.
+    """
     stmt = (
         select(PaymentModel)
         .options(selectinload(PaymentModel.items))

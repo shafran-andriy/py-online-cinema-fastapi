@@ -33,10 +33,20 @@ async def _get_or_create_profile(db: AsyncSession, user_id: int) -> UserProfileM
     "/me/",
     response_model=UserProfileResponseSchema,
     summary="Get My Profile",
-    description=(
-        "Returns the profile of the currently authenticated user. "
-        "An empty profile is created automatically on first access."
-    ),
+    description="""
+Returns the profile of the currently authenticated user.
+
+An empty profile is created automatically on first access (no explicit creation step needed).
+
+**Response fields:**
+- `first_name`, `last_name` — optional name fields
+- `gender` — `man` | `woman` | `other` | null
+- `date_of_birth` — ISO date string or null
+- `info` — free-text bio
+- `avatar` — URL of the uploaded avatar image (MinIO)
+
+**Auth:** Bearer token required.
+    """,
     status_code=status.HTTP_200_OK,
 )
 async def get_my_profile(
@@ -53,7 +63,24 @@ async def get_my_profile(
     "/me/",
     response_model=UserProfileResponseSchema,
     summary="Update My Profile",
-    description="Update one or more fields of the current user's profile. Only provided fields are changed.",
+    description="""
+Partially update the current user's profile. Only the provided fields are changed.
+
+**Request body** (all fields optional):
+```json
+{
+  "first_name": "Andrii",
+  "last_name": "Shafran",
+  "gender": "man",
+  "date_of_birth": "1990-05-15",
+  "info": "Full-stack developer"
+}
+```
+
+**Response:** Updated profile object.
+
+**Auth:** Bearer token required.
+    """,
     status_code=status.HTTP_200_OK,
 )
 async def update_my_profile(
@@ -78,10 +105,20 @@ async def update_my_profile(
     "/me/avatar/",
     response_model=UserProfileResponseSchema,
     summary="Upload Avatar",
-    description=(
-        "Upload a profile avatar image (JPEG, PNG, GIF, or WebP). "
-        "The file is stored in S3-compatible storage (MinIO) and the profile avatar URL is updated."
-    ),
+    description="""
+Upload a profile avatar image. The file is stored in MinIO (S3-compatible) and the profile `avatar` URL is updated.
+
+**Accepted formats:** JPEG, PNG, GIF, WebP
+
+**Request:** `multipart/form-data` with field `file` containing the image.
+
+**Error responses:**
+- `400` — Unsupported file type.
+
+**Response:** Updated profile with the new `avatar` URL.
+
+**Auth:** Bearer token required.
+    """,
     status_code=status.HTTP_200_OK,
 )
 async def upload_my_avatar(
