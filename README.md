@@ -458,6 +458,82 @@ Swagger UI and ReDoc are protected — a valid JWT access token is required to a
 
 | URL | Description |
 |---|---|
-| `GET /docs` | Swagger UI (JWT required) |
-| `GET /redoc` | ReDoc (JWT required) |
+| `GET /docs` | Swagger UI |
+| `GET /redoc` | ReDoc |
 | `GET /openapi.json` | Raw OpenAPI schema |
+
+---
+
+## Live Demo — AWS EC2
+
+The project is successfully deployed on AWS EC2 and available at:
+
+| Service | URL |
+|---|---|
+| **Swagger UI** | [http://34.225.57.28:8000/docs](http://34.225.57.28:8000/docs) |
+| **API** | [http://34.225.57.28:8000](http://34.225.57.28:8000) |
+| **MailHog** (email dev UI) | [http://34.225.57.28:8025](http://34.225.57.28:8025) |
+| **MinIO Console** (S3 storage) | [http://34.225.57.28:9001](http://34.225.57.28:9001) |
+
+### Test Accounts
+
+Ready-to-use accounts for exploring all functionality:
+
+| Email | Password | Role | Capabilities |
+|---|---|---|---|
+| `admin@cinema.com` | `Admin123!` | **Admin** | All endpoints, user management, movie CRUD |
+| `user1@cinema.com` | `User123!` | **User** | Browse movies, cart, orders, payments |
+| `user2@cinema.com` | `User123!` | **Moderator** | Create/edit/delete movies, view all carts & orders |
+
+**Quick start:**
+1. Open [Swagger UI](http://34.225.57.28:8000/docs)
+2. Use `POST /api/v1/accounts/login/` with credentials above
+3. Copy `access_token` → click **Authorize** → paste `Bearer <token>`
+4. Explore all endpoints
+
+See [seed_data.json](seed_data.json) for full test dataset (movies, orders, payments).
+
+---
+
+## Test Dataset
+
+The file [`seed_data.json`](seed_data.json) contains a complete test dataset ready for demo and QA.
+
+### Users (3)
+
+| Email | Password | Role |
+|---|---|---|
+| `admin@cinema.com` | `Admin123!` | ADMIN |
+| `user1@cinema.com` | `User123!` | USER |
+| `user2@cinema.com` | `User123!` | MODERATOR |
+
+### Movies (10)
+
+| Title | Year | IMDB | Price | Genres |
+|---|---|---|---|---|
+| Inception | 2010 | 8.8 | $9.99 | Action, Sci-Fi, Thriller |
+| The Shawshank Redemption | 1994 | 9.3 | $7.99 | Drama |
+| The Dark Knight | 2008 | 9.0 | $9.99 | Action, Thriller |
+| Pulp Fiction | 1994 | 8.9 | $8.99 | Thriller, Drama |
+| Interstellar | 2014 | 8.7 | $9.99 | Sci-Fi, Drama |
+| The Lion King | 1994 | 8.5 | $6.99 | Animation, Drama |
+| Forrest Gump | 1994 | 8.8 | $7.99 | Drama, Romance, Comedy |
+| The Matrix | 1999 | 8.7 | $8.99 | Action, Sci-Fi |
+| Goodfellas | 1990 | 8.7 | $8.99 | Drama, Thriller |
+| The Silence of the Lambs | 1991 | 8.6 | $7.99 | Horror, Thriller, Drama |
+
+### Orders & Payments
+
+| User | Movies | Status | Amount |
+|---|---|---|---|
+| user1 | Shawshank + Dark Knight | **PAID** | $17.98 |
+| user1 | Forrest Gump | PENDING | $7.99 |
+| user2 | Pulp Fiction + Goodfellas | **PAID** | $17.98 |
+| admin | Interstellar + Lion King | CANCELED | $16.98 |
+
+### Additional Data
+- **Cart:** user1 has Inception + The Matrix in cart
+- **Ratings:** 7 user ratings (scores 9–10) across different movies
+- **Comments:** 3 comments including 1 reply thread
+- **Reactions:** 7 likes/dislikes across all users
+- **Favorites:** each user has 2–3 favorite movies

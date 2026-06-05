@@ -1,0 +1,291 @@
+{
+  "_comment": "Test seed data for Online Cinema API. Use scripts/seed.py to load, or follow the manual steps below.",
+  "_version": "1.0.0",
+
+  "users": [
+    {
+      "email": "admin@cinema.com",
+      "password": "Admin123!",
+      "role": "ADMIN",
+      "is_active": true,
+      "description": "Administrator — full access to all endpoints"
+    },
+    {
+      "email": "user1@cinema.com",
+      "password": "User123!",
+      "role": "USER",
+      "is_active": true,
+      "description": "Regular user — browse, cart, orders, payments"
+    },
+    {
+      "email": "user2@cinema.com",
+      "password": "User123!",
+      "role": "MODERATOR",
+      "is_active": true,
+      "description": "Moderator — create/edit/delete movies, view all carts & orders"
+    }
+  ],
+
+  "certifications": [
+    {"name": "G"},
+    {"name": "PG"},
+    {"name": "PG-13"},
+    {"name": "R"},
+    {"name": "NC-17"}
+  ],
+
+  "genres": [
+    {"name": "Action"},
+    {"name": "Drama"},
+    {"name": "Comedy"},
+    {"name": "Thriller"},
+    {"name": "Sci-Fi"},
+    {"name": "Horror"},
+    {"name": "Romance"},
+    {"name": "Animation"}
+  ],
+
+  "movies": [
+    {
+      "name": "Inception",
+      "year": 2010,
+      "time": 148,
+      "imdb": 8.8,
+      "votes": 2400000,
+      "description": "A thief who steals corporate secrets through the use of dream-sharing technology is given the inverse task of planting an idea into the mind of a C.E.O.",
+      "price": 9.99,
+      "certification": "PG-13",
+      "genres": ["Action", "Sci-Fi", "Thriller"],
+      "directors": ["Christopher Nolan"],
+      "stars": ["Leonardo DiCaprio", "Joseph Gordon-Levitt", "Elliot Page"]
+    },
+    {
+      "name": "The Shawshank Redemption",
+      "year": 1994,
+      "time": 142,
+      "imdb": 9.3,
+      "votes": 2700000,
+      "description": "Two imprisoned men bond over a number of years, finding solace and eventual redemption through acts of common decency.",
+      "price": 7.99,
+      "certification": "R",
+      "genres": ["Drama"],
+      "directors": ["Frank Darabont"],
+      "stars": ["Tim Robbins", "Morgan Freeman"]
+    },
+    {
+      "name": "The Dark Knight",
+      "year": 2008,
+      "time": 152,
+      "imdb": 9.0,
+      "votes": 2700000,
+      "description": "When the menace known as the Joker wreaks havoc and chaos on the people of Gotham, Batman must accept one of the greatest psychological and physical tests of his ability to fight injustice.",
+      "price": 9.99,
+      "certification": "PG-13",
+      "genres": ["Action", "Thriller"],
+      "directors": ["Christopher Nolan"],
+      "stars": ["Christian Bale", "Heath Ledger", "Aaron Eckhart"]
+    },
+    {
+      "name": "Pulp Fiction",
+      "year": 1994,
+      "time": 154,
+      "imdb": 8.9,
+      "votes": 2100000,
+      "description": "The lives of two mob hitmen, a boxer, a gangster and his wife, and a pair of diner bandits intertwine in four tales of violence and redemption.",
+      "price": 8.99,
+      "certification": "R",
+      "genres": ["Thriller", "Drama"],
+      "directors": ["Quentin Tarantino"],
+      "stars": ["John Travolta", "Uma Thurman", "Samuel L. Jackson"]
+    },
+    {
+      "name": "Interstellar",
+      "year": 2014,
+      "time": 169,
+      "imdb": 8.7,
+      "votes": 1900000,
+      "description": "A team of explorers travel through a wormhole in space in an attempt to ensure humanity's survival.",
+      "price": 9.99,
+      "certification": "PG-13",
+      "genres": ["Sci-Fi", "Drama"],
+      "directors": ["Christopher Nolan"],
+      "stars": ["Matthew McConaughey", "Anne Hathaway", "Jessica Chastain"]
+    },
+    {
+      "name": "The Lion King",
+      "year": 1994,
+      "time": 88,
+      "imdb": 8.5,
+      "votes": 1000000,
+      "description": "Lion prince Simba and his father are targeted by his bitter uncle, who wants to ascend the throne himself.",
+      "price": 6.99,
+      "certification": "G",
+      "genres": ["Animation", "Drama"],
+      "directors": ["Roger Allers", "Rob Minkoff"],
+      "stars": ["Matthew Broderick", "Jeremy Irons", "James Earl Jones"]
+    },
+    {
+      "name": "Forrest Gump",
+      "year": 1994,
+      "time": 142,
+      "imdb": 8.8,
+      "votes": 2100000,
+      "description": "The presidencies of Kennedy and Johnson, the Vietnam War, the Watergate scandal and other historical events unfold from the perspective of an Alabama man with an IQ of 75.",
+      "price": 7.99,
+      "certification": "PG-13",
+      "genres": ["Drama", "Romance", "Comedy"],
+      "directors": ["Robert Zemeckis"],
+      "stars": ["Tom Hanks", "Robin Wright", "Gary Sinise"]
+    },
+    {
+      "name": "The Matrix",
+      "year": 1999,
+      "time": 136,
+      "imdb": 8.7,
+      "votes": 1900000,
+      "description": "When a beautiful stranger leads computer hacker Neo to a forbidding underworld, he discovers the shocking truth--the life he knows is the elaborate deception of an evil cyber-intelligence.",
+      "price": 8.99,
+      "certification": "R",
+      "genres": ["Action", "Sci-Fi"],
+      "directors": ["Lana Wachowski", "Lilly Wachowski"],
+      "stars": ["Keanu Reeves", "Laurence Fishburne", "Carrie-Anne Moss"]
+    },
+    {
+      "name": "Goodfellas",
+      "year": 1990,
+      "time": 145,
+      "imdb": 8.7,
+      "votes": 1100000,
+      "description": "The story of Henry Hill and his life in the mob, covering his relationship with his wife Karen Hill and his mob partners Jimmy Conway and Tommy DeVito.",
+      "price": 8.99,
+      "certification": "R",
+      "genres": ["Drama", "Thriller"],
+      "directors": ["Martin Scorsese"],
+      "stars": ["Ray Liotta", "Robert De Niro", "Joe Pesci"]
+    },
+    {
+      "name": "The Silence of the Lambs",
+      "year": 1991,
+      "time": 118,
+      "imdb": 8.6,
+      "votes": 1400000,
+      "description": "A young F.B.I. cadet must receive the help of an incarcerated and manipulative cannibal killer to help catch another serial killer.",
+      "price": 7.99,
+      "certification": "R",
+      "genres": ["Horror", "Thriller", "Drama"],
+      "directors": ["Jonathan Demme"],
+      "stars": ["Jodie Foster", "Anthony Hopkins", "Scott Glenn"]
+    }
+  ],
+
+  "carts": [
+    {
+      "user": "user1@cinema.com",
+      "items": ["Inception", "The Matrix"]
+    }
+  ],
+
+  "orders": [
+    {
+      "user": "user1@cinema.com",
+      "movies": ["The Shawshank Redemption", "The Dark Knight"],
+      "status": "PAID",
+      "total_amount": 17.98
+    },
+    {
+      "user": "user1@cinema.com",
+      "movies": ["Forrest Gump"],
+      "status": "PENDING",
+      "total_amount": 7.99
+    },
+    {
+      "user": "user2@cinema.com",
+      "movies": ["Pulp Fiction", "Goodfellas"],
+      "status": "PAID",
+      "total_amount": 17.98
+    },
+    {
+      "user": "admin@cinema.com",
+      "movies": ["Interstellar", "The Lion King"],
+      "status": "CANCELED",
+      "total_amount": 16.98
+    }
+  ],
+
+  "payments": [
+    {
+      "user": "user1@cinema.com",
+      "order_movies": ["The Shawshank Redemption", "The Dark Knight"],
+      "amount": 17.98,
+      "status": "SUCCESSFUL",
+      "stripe_session_id": "cs_test_demo_user1_order1"
+    },
+    {
+      "user": "user2@cinema.com",
+      "order_movies": ["Pulp Fiction", "Goodfellas"],
+      "amount": 17.98,
+      "status": "SUCCESSFUL",
+      "stripe_session_id": "cs_test_demo_user2_order1"
+    }
+  ],
+
+  "comments": [
+    {
+      "user": "user1@cinema.com",
+      "movie": "Inception",
+      "body": "Mind-blowing film! The layered dream sequences are incredibly crafted.",
+      "replies": [
+        {
+          "user": "user2@cinema.com",
+          "body": "Absolutely agree! Christopher Nolan at his best."
+        }
+      ]
+    },
+    {
+      "user": "user2@cinema.com",
+      "movie": "The Dark Knight",
+      "body": "Heath Ledger's Joker is one of the greatest villain performances in cinema history."
+    },
+    {
+      "user": "admin@cinema.com",
+      "movie": "Interstellar",
+      "body": "The docking scene is pure cinematic perfection. Hans Zimmer's score elevates everything."
+    }
+  ],
+
+  "ratings": [
+    {"user": "user1@cinema.com", "movie": "Inception", "score": 10},
+    {"user": "user1@cinema.com", "movie": "The Dark Knight", "score": 10},
+    {"user": "user1@cinema.com", "movie": "Forrest Gump", "score": 9},
+    {"user": "user2@cinema.com", "movie": "Pulp Fiction", "score": 9},
+    {"user": "user2@cinema.com", "movie": "Inception", "score": 9},
+    {"user": "admin@cinema.com", "movie": "The Shawshank Redemption", "score": 10},
+    {"user": "admin@cinema.com", "movie": "Interstellar", "score": 9}
+  ],
+
+  "reactions": [
+    {"user": "user1@cinema.com", "movie": "Inception", "type": "like"},
+    {"user": "user1@cinema.com", "movie": "The Matrix", "type": "like"},
+    {"user": "user1@cinema.com", "movie": "The Silence of the Lambs", "type": "dislike"},
+    {"user": "user2@cinema.com", "movie": "The Dark Knight", "type": "like"},
+    {"user": "user2@cinema.com", "movie": "Goodfellas", "type": "like"},
+    {"user": "admin@cinema.com", "movie": "Interstellar", "type": "like"},
+    {"user": "admin@cinema.com", "movie": "Forrest Gump", "type": "like"}
+  ],
+
+  "favorites": [
+    {"user": "user1@cinema.com", "movies": ["Inception", "The Dark Knight", "The Matrix"]},
+    {"user": "user2@cinema.com", "movies": ["Pulp Fiction", "Goodfellas"]},
+    {"user": "admin@cinema.com", "movies": ["Interstellar", "The Shawshank Redemption"]}
+  ],
+
+  "load_instructions": {
+    "step1": "Register all users via POST /api/v1/accounts/register/",
+    "step2": "Activate accounts (check MailHog at port 8025 or use admin endpoint)",
+    "step3": "Login as user2 and promote to MODERATOR via admin panel",
+    "step4": "Login as admin and promote to ADMIN",
+    "step5": "Login as user2 (moderator) and create all 10 movies via POST /api/v1/movies/",
+    "step6": "Login as each user and add movies to cart, create orders, add favorites",
+    "step7": "Simulate payments by updating order status directly in DB for demo"
+  }
+}
