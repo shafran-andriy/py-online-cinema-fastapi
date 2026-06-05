@@ -18,9 +18,8 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             set -e
-            cd ~/py-online-cinema-fastapi
+            cd ~/src/py-online-cinema-fastapi
             git pull origin main
-            docker compose pull
             docker compose up --build -d
             docker compose run --rm web alembic upgrade head
             echo "Deploy completed successfully"
