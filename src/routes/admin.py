@@ -152,7 +152,7 @@ Each payment includes:
 )
 async def list_all_payments(
     user_id: Optional[int] = Query(None, description="Filter by user ID"),
-    status: Optional[PaymentStatusEnum] = Query(None, description="Filter by payment status: SUCCESSFUL, CANCELED, REFUNDED"),
+    status: Optional[PaymentStatusEnum] = Query(None, description="Filter by status: SUCCESSFUL, CANCELED, REFUNDED"),
     date_from: Optional[date] = Query(None, description="Include payments from this date (YYYY-MM-DD)"),
     date_to: Optional[date] = Query(None, description="Include payments up to this date (YYYY-MM-DD)"),
     db=Depends(get_db),

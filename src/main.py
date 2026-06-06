@@ -65,4 +65,4 @@ def custom_openapi():
     return schema
 
 
-app.openapi = custom_openapi
+app.openapi = custom_openapi  # type: ignore[method-assign]

@@ -1,6 +1,5 @@
 import os
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.pool import NullPool
 
 from database.models.base import Base
@@ -8,7 +7,7 @@ from database.models.base import Base
 DATABASE_URL = os.environ.get('TEST_DATABASE_URL', 'sqlite+aiosqlite:///./test_sqlite.db')
 
 engine = create_async_engine(DATABASE_URL, echo=False, poolclass=NullPool)
-AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
 async def reset_sqlite_database():

@@ -5,7 +5,6 @@ from email.mime.multipart import MIMEMultipart
 import aiosmtplib
 from jinja2 import Environment, FileSystemLoader
 
-from exceptions import BaseEmailError
 from .interfaces import EmailSenderInterface
 
 

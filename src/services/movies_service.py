@@ -17,7 +17,7 @@ async def get_or_create_by_names(db: AsyncSession, Model: Type, names: List[str]
     if new_objs:
         db.add_all(new_objs)
         await db.flush()
-    return existing + new_objs
+    return list(existing) + new_objs
 
 
 async def validate_ids(db: AsyncSession, Model: Type, ids: Optional[List[int]]) -> List:
@@ -26,7 +26,7 @@ async def validate_ids(db: AsyncSession, Model: Type, ids: Optional[List[int]]) 
         return []
     stmt = select(Model).where(Model.id.in_(ids))
     res = await db.execute(stmt)
-    objs = res.scalars().all()
+    objs = list(res.scalars().all())
     if len(objs) != len(set(ids)):
         raise ValueError("One or more ids invalid")
     return objs
@@ -43,7 +43,7 @@ async def prepare_related(db: AsyncSession,
                           director_names: Optional[List[str]] = None,
                           star_names: Optional[List[str]] = None):
     """Prepare related model instances (genres, directors, stars) from ids and/or names."""
-    result = {'genres': [], 'directors': [], 'stars': []}
+    result: dict[str, list] = {'genres': [], 'directors': [], 'stars': []}
     if GenreModel is not None:
         by_id = await validate_ids(db, GenreModel, genre_ids)
         by_name = await get_or_create_by_names(db, GenreModel, genre_names)

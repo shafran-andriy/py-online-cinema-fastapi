@@ -23,7 +23,7 @@ class BaseAppSettings(BaseSettings):
     EMAIL_HOST_USER: str = os.getenv("EMAIL_HOST_USER", "testuser")
     EMAIL_HOST_PASSWORD: str = os.getenv("EMAIL_HOST_PASSWORD", "test_password")
     EMAIL_USE_TLS: bool = os.getenv("EMAIL_USE_TLS", "False").lower() == "true"
-    MAILHOG_API_PORT: int = os.getenv("MAILHOG_API_PORT", 8025)
+    MAILHOG_API_PORT: int = int(os.getenv("MAILHOG_API_PORT", "8025"))
 
     STRIPE_SECRET_KEY: str = os.getenv("STRIPE_SECRET_KEY", "sk_test_placeholder")
     STRIPE_WEBHOOK_SECRET: str = os.getenv("STRIPE_WEBHOOK_SECRET", "whsec_placeholder")
@@ -37,7 +37,7 @@ class BaseAppSettings(BaseSettings):
     PAYMENT_CONFIRMATION_TEMPLATE_NAME: str = "payment_confirmation.html"
 
     S3_STORAGE_HOST: str = os.getenv("MINIO_HOST", "minio-theater")
-    S3_STORAGE_PORT: int = os.getenv("MINIO_PORT", 9000)
+    S3_STORAGE_PORT: int = int(os.getenv("MINIO_PORT", "9000"))
     S3_STORAGE_ACCESS_KEY: str = os.getenv("MINIO_ROOT_USER", "minioadmin")
     S3_STORAGE_SECRET_KEY: str = os.getenv("MINIO_ROOT_PASSWORD", "some_password")
     S3_BUCKET_NAME: str = os.getenv("MINIO_STORAGE", "theater-storage")

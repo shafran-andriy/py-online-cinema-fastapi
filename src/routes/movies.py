@@ -381,24 +381,27 @@ When both IDs and names are provided, they are merged and deduplicated.
     """,
 )
 async def create_movie(
-    payload: MovieCreateSchema = Body(..., examples={
-        "default": {
-            "summary": "Create example",
-            "value": {
-                "name": "New Movie",
-                "year": 2023,
-                "time": 120,
-                "imdb": 7.5,
-                "votes": 1000,
-                "description": "A new film",
-                "price": 4.99,
-                "certification_id": 1,
-                "genre_names": ["Action", "Thriller"],
-                "director_names": ["Famous Director"],
-                "star_names": ["Star A", "Star B"]
+    payload: MovieCreateSchema = Body(
+        ...,
+        openapi_examples={
+            "default": {
+                "summary": "Create example",
+                "value": {
+                    "name": "New Movie",
+                    "year": 2023,
+                    "time": 120,
+                    "imdb": 7.5,
+                    "votes": 1000,
+                    "description": "A new film",
+                    "price": 4.99,
+                    "certification_id": 1,
+                    "genre_names": ["Action", "Thriller"],
+                    "director_names": ["Famous Director"],
+                    "star_names": ["Star A", "Star B"],
+                },
             }
-        }
-    }),
+        },
+    ),
     db: AsyncSession = Depends(get_db),
     _moderator=Depends(require_moderator),
 ):
@@ -442,12 +445,15 @@ Partially update an existing movie. Only provided fields are changed.
 )
 async def update_movie(
     movie_id: int,
-    payload: MovieUpdateSchema = Body(..., examples={
-        "default": {
-            "summary": "Partial update example",
-            "value": {"genre_names": ["AddedG"], "director_names": ["AddedDir"]}
-        }
-    }),
+    payload: MovieUpdateSchema = Body(
+        ...,
+        openapi_examples={
+            "default": {
+                "summary": "Partial update example",
+                "value": {"genre_names": ["AddedG"], "director_names": ["AddedDir"]},
+            }
+        },
+    ),
     db: AsyncSession = Depends(get_db),
     _moderator=Depends(require_moderator),
 ):
